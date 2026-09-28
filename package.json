@@ -1,0 +1,11 @@
+{
+  "name": "gnat-mapping",
+  "private": true,
+  "description": "GNAT structure mapping: districts, locals and basic units",
+  "scripts": {
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "test": "npm --prefix backend test"
+  }
+}

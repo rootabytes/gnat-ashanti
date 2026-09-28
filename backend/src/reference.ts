@@ -1,0 +1,92 @@
+// Reference data taken from "Mapping GNAT Regions, Districts, Locals and Basic Units" (v1.0).
+
+export const WORKPLACE_CATEGORIES = [
+  'Basic Units',
+  'Management Units',
+  'Education Administration Units',
+  'Religious Mission Administrations',
+  'Regional Administration',
+  'Private Schools',
+  'GES Headquarters',
+  'NaCCA',
+  'MoE',
+  'NTC',
+  'Non-Formal Education',
+] as const;
+
+export type WorkplaceCategory = (typeof WORKPLACE_CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<WorkplaceCategory, string> = {
+  'Basic Units': 'Basic Units',
+  'Management Units': 'Management Units',
+  'Education Administration Units': 'Education Administration Units',
+  'Religious Mission Administrations': 'Religious Mission Administrations',
+  'Regional Administration': 'Regional Administration',
+  'Private Schools': 'Private Schools',
+  'GES Headquarters': 'GES Headquarters (Ghana Education Service)',
+  NaCCA: 'NaCCA (National Council for Curriculum and Assessment)',
+  MoE: 'MoE (Ministry of Education)',
+  NTC: 'NTC (National Teaching Council)',
+  'Non-Formal Education': 'Non-Formal Education',
+};
+
+// GNAT regions and the political administrative regions each one covers.
+export const GNAT_REGIONS: { name: string; code: string; political: string[]; active: boolean }[] = [
+  { name: 'Ashanti', code: 'ASH', political: ['Ashanti'], active: true },
+  { name: 'Brong Ahafo', code: 'BA', political: ['Bono', 'Bono East', 'Ahafo'], active: false },
+  { name: 'Central', code: 'CEN', political: ['Central'], active: false },
+  { name: 'Eastern', code: 'EAS', political: ['Eastern'], active: false },
+  { name: 'Greater Accra', code: 'GAR', political: ['Greater Accra'], active: false },
+  { name: 'Northern', code: 'NOR', political: ['Northern', 'Savannah', 'North East'], active: false },
+  { name: 'Upper East', code: 'UER', political: ['Upper East'], active: false },
+  { name: 'Upper West', code: 'UWR', political: ['Upper West'], active: false },
+  { name: 'Volta', code: 'VOL', political: ['Volta', 'Oti'], active: false },
+  { name: 'Western', code: 'WES', political: ['Western', 'Western North'], active: false },
+];
+
+// The 43 Metropolitan, Municipal and District Assemblies of the Ashanti Region.
+export const ASHANTI_POLITICAL_DISTRICTS: { name: string; kind: string }[] = [
+  { name: 'Adansi Asokwa', kind: 'District' },
+  { name: 'Adansi North', kind: 'District' },
+  { name: 'Adansi South', kind: 'District' },
+  { name: 'Afigya Kwabre North', kind: 'District' },
+  { name: 'Afigya Kwabre South', kind: 'District' },
+  { name: 'Ahafo Ano North', kind: 'Municipal' },
+  { name: 'Ahafo Ano South East', kind: 'District' },
+  { name: 'Ahafo Ano South West', kind: 'District' },
+  { name: 'Akrofuom', kind: 'District' },
+  { name: 'Amansie Central', kind: 'District' },
+  { name: 'Amansie South', kind: 'District' },
+  { name: 'Amansie West', kind: 'District' },
+  { name: 'Asante Akim Central', kind: 'Municipal' },
+  { name: 'Asante Akim North', kind: 'District' },
+  { name: 'Asante Akim South', kind: 'Municipal' },
+  { name: 'Asokore Mampong', kind: 'Municipal' },
+  { name: 'Asokwa', kind: 'Municipal' },
+  { name: 'Atwima Kwanwoma', kind: 'District' },
+  { name: 'Atwima Mponua', kind: 'District' },
+  { name: 'Atwima Nwabiagya', kind: 'Municipal' },
+  { name: 'Atwima Nwabiagya North', kind: 'District' },
+  { name: 'Bekwai', kind: 'Municipal' },
+  { name: 'Bosome Freho', kind: 'District' },
+  { name: 'Bosomtwe', kind: 'District' },
+  { name: 'Ejisu', kind: 'Municipal' },
+  { name: 'Ejura Sekyedumase', kind: 'Municipal' },
+  { name: 'Juaben', kind: 'Municipal' },
+  { name: 'Kumasi', kind: 'Metropolitan' },
+  { name: 'Kwabre East', kind: 'Municipal' },
+  { name: 'Kwadaso', kind: 'Municipal' },
+  { name: 'Mampong', kind: 'Municipal' },
+  { name: 'Obuasi', kind: 'Municipal' },
+  { name: 'Obuasi East', kind: 'District' },
+  { name: 'Offinso', kind: 'Municipal' },
+  { name: 'Offinso North', kind: 'District' },
+  { name: 'Oforikrom', kind: 'Municipal' },
+  { name: 'Old Tafo', kind: 'Municipal' },
+  { name: 'Sekyere Afram Plains', kind: 'District' },
+  { name: 'Sekyere Central', kind: 'District' },
+  { name: 'Sekyere East', kind: 'District' },
+  { name: 'Sekyere Kumawu', kind: 'District' },
+  { name: 'Sekyere South', kind: 'District' },
+  { name: 'Suame', kind: 'Municipal' },
+];
