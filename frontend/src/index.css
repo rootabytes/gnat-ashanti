@@ -1,34 +1,36 @@
 @import 'tailwindcss';
 
-/* Tokens: GNAT navy + flame red. Every colour the UI uses lives here so dark mode is one swap. */
+/* Tokens: GNAT red, sky blue and white. Every colour the UI uses lives here so dark mode is one swap. */
 :root {
   color-scheme: light;
-  --bg: #f5f5fa;
+  --bg: #f4f9fd;
   --surface: #ffffff;
-  --surface-2: #eeeef6;
-  --border: #dcdce8;
-  --ink: #15153a;
-  --ink-2: #4a4a66;
-  --ink-3: #6b6b85;
-  --brand: #25256b;
+  --surface-2: #eaf3fa;
+  --border: #d3e2ee;
+  --ink: #0b1f33;
+  --ink-2: #3c5166;
+  --ink-3: #5a6e82;
+  /* GNAT brand: sky blue (primary), red (accent), white */
+  --brand: #0369a1;
   --brand-ink: #ffffff;
-  --brand-soft: #e6e6f5;
+  --brand-soft: #e0f2fe;
+  --sky: #0ea5e9;
   --accent: #e0302a;
-  --accent-ink: #b8201b;
-  --focus: #4040b0;
-  /* chart series: validated pair (see README → Charts) */
-  --series-1: #4040b0;
-  --series-2: #eb6834;
-  --grid: #e6e6ef;
-  /* status */
+  --accent-ink: #b91c1c;
+  --focus: #0284c7;
+  /* chart series: validated pair (README → Charts) */
+  --series-1: #0284c7;
+  --series-2: #e0302a;
+  --grid: #e1ecf5;
+  /* status (kept distinct from the brand hues) */
   --st-approved: #0b7a0b;
   --st-approved-bg: #e3f4e3;
-  --st-submitted: #2a4fb8;
-  --st-submitted-bg: #e4ebfb;
+  --st-submitted: #6d28d9;
+  --st-submitted-bg: #f0e9fd;
   --st-returned: #9a5b00;
   --st-returned-bg: #fdf0d8;
-  --st-draft: #5b5b70;
-  --st-draft-bg: #ececf2;
+  --st-draft: #54687b;
+  --st-draft-bg: #e9f0f6;
   --danger: #c0262b;
   --danger-bg: #fde8e8;
 }
@@ -36,60 +38,62 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #0f0f1f;
-    --surface: #181830;
-    --surface-2: #22223d;
-    --border: #33335a;
-    --ink: #f0f0fa;
-    --ink-2: #c3c3dc;
-    --ink-3: #9a9ab8;
-    --brand: #8f8fe8;
-    --brand-ink: #0f0f1f;
-    --brand-soft: #26264a;
-    --accent: #ff6a5f;
+    --bg: #0b1622;
+    --surface: #111f2e;
+    --surface-2: #182a3c;
+    --border: #25405a;
+    --ink: #eef6fc;
+    --ink-2: #bfd3e3;
+    --ink-3: #8fa7bb;
+    --brand: #38bdf8;
+    --brand-ink: #04202f;
+    --brand-soft: #0f2d44;
+    --sky: #38bdf8;
+    --accent: #ff6b6b;
     --accent-ink: #ff8a80;
-    --focus: #a5a5ff;
-    --series-1: #7a7ae0;
-    --series-2: #d95926;
-    --grid: #2a2a48;
+    --focus: #7dd3fc;
+    --series-1: #1795db;
+    --series-2: #e5484d;
+    --grid: #1c3044;
     --st-approved: #5fd35f;
     --st-approved-bg: #16331a;
-    --st-submitted: #8fb0ff;
-    --st-submitted-bg: #1c2748;
+    --st-submitted: #c4b5fd;
+    --st-submitted-bg: #2a2150;
     --st-returned: #f3b64a;
     --st-returned-bg: #3a2c10;
-    --st-draft: #b5b5cc;
-    --st-draft-bg: #2a2a44;
+    --st-draft: #b3c6d6;
+    --st-draft-bg: #1d3144;
     --danger: #ff7b7b;
     --danger-bg: #3d1a1d;
   }
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0f0f1f;
-  --surface: #181830;
-  --surface-2: #22223d;
-  --border: #33335a;
-  --ink: #f0f0fa;
-  --ink-2: #c3c3dc;
-  --ink-3: #9a9ab8;
-  --brand: #8f8fe8;
-  --brand-ink: #0f0f1f;
-  --brand-soft: #26264a;
-  --accent: #ff6a5f;
+  --bg: #0b1622;
+  --surface: #111f2e;
+  --surface-2: #182a3c;
+  --border: #25405a;
+  --ink: #eef6fc;
+  --ink-2: #bfd3e3;
+  --ink-3: #8fa7bb;
+  --brand: #38bdf8;
+  --brand-ink: #04202f;
+  --brand-soft: #0f2d44;
+  --sky: #38bdf8;
+  --accent: #ff6b6b;
   --accent-ink: #ff8a80;
-  --focus: #a5a5ff;
-  --series-1: #7a7ae0;
-  --series-2: #d95926;
-  --grid: #2a2a48;
+  --focus: #7dd3fc;
+  --series-1: #1795db;
+  --series-2: #e5484d;
+  --grid: #1c3044;
   --st-approved: #5fd35f;
   --st-approved-bg: #16331a;
-  --st-submitted: #8fb0ff;
-  --st-submitted-bg: #1c2748;
+  --st-submitted: #c4b5fd;
+  --st-submitted-bg: #2a2150;
   --st-returned: #f3b64a;
   --st-returned-bg: #3a2c10;
-  --st-draft: #b5b5cc;
-  --st-draft-bg: #2a2a44;
+  --st-draft: #b3c6d6;
+  --st-draft-bg: #1d3144;
   --danger: #ff7b7b;
   --danger-bg: #3d1a1d;
 }
@@ -107,9 +111,10 @@
   --color-brand-soft: var(--brand-soft);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
+  --color-sky: var(--sky);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
 }
 
 html,
@@ -120,6 +125,7 @@ body {
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01'; /* Inter: single-storey a, open digits */
   -webkit-tap-highlight-color: transparent;
 }
 :focus-visible {
@@ -135,6 +141,7 @@ textarea {
 .code-font {
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   letter-spacing: 0.06em;
+  font-feature-settings: normal;
 }
 
 @media print {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowRight, Building2, Check, Circle, Landmark, MapPinned, School } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Alert, Card, Loading, StatusBadge } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -81,10 +82,10 @@ export default function Overview() {
       <PageTitle title={`${region.name} Region overview`} sub="Live progress of the GNAT mapping exercise. Updates every minute." />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="GNAT districts" value={t.districts} sub={`${data.districtStatus.submitted + data.districtStatus.approved} submitted`} />
-        <StatTile label="GNAT locals" value={t.locals} sub={`${data.localStatus.submitted + data.localStatus.approved} submitted`} />
-        <StatTile label="Workplaces" value={t.units} sub="basic units & institutions" />
-        <StatTile label="Political districts covered" value={`${t.politicalCovered}/${t.politicalDistricts}`} sub={uncovered.length ? `${uncovered.length} not yet covered` : 'All covered'} />
+        <StatTile icon={Building2} label="GNAT districts" value={t.districts} sub={`${data.districtStatus.submitted + data.districtStatus.approved} submitted`} />
+        <StatTile icon={Landmark} label="GNAT locals" value={t.locals} sub={`${data.localStatus.submitted + data.localStatus.approved} submitted`} />
+        <StatTile icon={School} label="Workplaces" value={t.units} sub="basic units & institutions" />
+        <StatTile icon={MapPinned} label="Political districts covered" value={`${t.politicalCovered}/${t.politicalDistricts}`} sub={uncovered.length ? `${uncovered.length} not yet covered` : 'All covered'} />
       </div>
 
       <Card title="Submission progress">
@@ -139,12 +140,12 @@ export default function Overview() {
           )}
         </Card>
 
-        <Card title="Recent activity" action={<Link to="/admin/activity" className="text-sm font-semibold text-brand">All activity →</Link>}>
+        <Card title="Recent activity" action={<Link to="/admin/activity" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">All activity<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
           <ActivityList rows={data.recent.slice(0, 12)} />
         </Card>
       </div>
 
-      <Card title="District tracker" action={<Link to="/admin/districts" className="text-sm font-semibold text-brand">Open tracker →</Link>}>
+      <Card title="District tracker" action={<Link to="/admin/districts" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">Open tracker<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[36rem] text-sm">
             <thead>
@@ -200,9 +201,11 @@ function CoverageCard({ coverage }: { coverage: OverviewData['coverage'] }) {
           const ok = c.gnatDistricts.length > 0;
           return (
             <li key={c.id} className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-sm ${ok ? 'bg-[var(--st-approved-bg)]' : 'border border-dashed border-line'}`}>
-              <span aria-hidden className="font-bold" style={{ color: ok ? 'var(--st-approved)' : 'var(--ink-3)' }}>
-                {ok ? '✓' : '○'}
-              </span>
+              {ok ? (
+                <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--st-approved)' }} aria-hidden />
+              ) : (
+                <Circle className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" aria-hidden />
+              )}
               <div className="min-w-0">
                 <p className={ok ? 'font-semibold text-ink' : 'text-ink-2'}>
                   {c.name} <span className="text-xs font-normal text-ink-3">{c.kind}</span>

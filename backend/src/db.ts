@@ -9,6 +9,9 @@ export const pool = new Pool({
   ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
 });
 
+// An idle client losing its connection (e.g. a database restart) must not crash the API.
+pool.on('error', (e) => console.error(JSON.stringify({ level: 'error', msg: 'pg pool error', error: e.message })));
+
 export async function query<T extends QueryResultRow = any>(text: string, params: unknown[] = []): Promise<T[]> {
   const res = await pool.query<T>(text, params);
   return res.rows;

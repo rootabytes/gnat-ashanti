@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Plus, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Button, Input, Loading, Modal, Select, StatusBadge, TextField, useToast, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -44,10 +45,13 @@ export default function Districts() {
       <PageTitle
         title="Districts"
         sub="Track, remind and review every GNAT district."
-        action={<Button onClick={() => setAdding(true)}>+ Add district</Button>}
+        action={<Button onClick={() => setAdding(true)}><Plus className="h-4 w-4" aria-hidden />Add district</Button>}
       />
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_12rem_12rem]">
-        <Input placeholder="Search district or chairman…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
+          <Input className="pl-9" placeholder="Search district or chairman…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
+        </div>
         <Select value={status} onChange={(e) => setStatus(e.target.value as any)} aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="incomplete">Needs follow-up</option>

@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, ComponentProps, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { AlertTriangle, CheckCircle2, Copy, Info, Loader2, MessageCircle, OctagonAlert, PencilLine, SendHorizontal, Undo2, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { Status } from '../lib/api';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
@@ -41,12 +43,7 @@ export function Button({
 }
 
 export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg className={cx('animate-spin', className)} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity=".25" strokeWidth="3" />
-      <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
+  return <Loader2 className={cx('animate-spin', className)} aria-hidden />;
 }
 
 export function Field({ label, hint, error, children, htmlFor }: { label: string; hint?: ReactNode; error?: string | null; children: ReactNode; htmlFor?: string }) {
@@ -107,18 +104,18 @@ export function Card({ children, className, title, action, subtitle }: { childre
   );
 }
 
-export const STATUS_META: Record<Status, { label: string; icon: string; fg: string; bg: string }> = {
-  draft: { label: 'In progress', icon: '✎', fg: 'var(--st-draft)', bg: 'var(--st-draft-bg)' },
-  submitted: { label: 'Submitted', icon: '➜', fg: 'var(--st-submitted)', bg: 'var(--st-submitted-bg)' },
-  returned: { label: 'Returned', icon: '↺', fg: 'var(--st-returned)', bg: 'var(--st-returned-bg)' },
-  approved: { label: 'Approved', icon: '✓', fg: 'var(--st-approved)', bg: 'var(--st-approved-bg)' },
+export const STATUS_META: Record<Status, { label: string; icon: LucideIcon; fg: string; bg: string }> = {
+  draft: { label: 'In progress', icon: PencilLine, fg: 'var(--st-draft)', bg: 'var(--st-draft-bg)' },
+  submitted: { label: 'Submitted', icon: SendHorizontal, fg: 'var(--st-submitted)', bg: 'var(--st-submitted-bg)' },
+  returned: { label: 'Returned', icon: Undo2, fg: 'var(--st-returned)', bg: 'var(--st-returned-bg)' },
+  approved: { label: 'Approved', icon: CheckCircle2, fg: 'var(--st-approved)', bg: 'var(--st-approved-bg)' },
 };
 
 export function StatusBadge({ status }: { status: Status }) {
   const m = STATUS_META[status];
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ color: m.fg, background: m.bg }}>
-      <span aria-hidden>{m.icon}</span>
+      <m.icon className="h-3.5 w-3.5" aria-hidden />
       {m.label}
     </span>
   );
@@ -126,16 +123,14 @@ export function StatusBadge({ status }: { status: Status }) {
 
 export function Alert({ tone = 'info', title, children }: { tone?: 'info' | 'error' | 'warn' | 'success'; title?: ReactNode; children?: ReactNode }) {
   const t = {
-    info: { fg: 'var(--st-submitted)', bg: 'var(--st-submitted-bg)', icon: 'ℹ' },
-    error: { fg: 'var(--danger)', bg: 'var(--danger-bg)', icon: '!' },
-    warn: { fg: 'var(--st-returned)', bg: 'var(--st-returned-bg)', icon: '⚠' },
-    success: { fg: 'var(--st-approved)', bg: 'var(--st-approved-bg)', icon: '✓' },
+    info: { fg: 'var(--brand)', bg: 'var(--brand-soft)', icon: Info },
+    error: { fg: 'var(--danger)', bg: 'var(--danger-bg)', icon: OctagonAlert },
+    warn: { fg: 'var(--st-returned)', bg: 'var(--st-returned-bg)', icon: AlertTriangle },
+    success: { fg: 'var(--st-approved)', bg: 'var(--st-approved-bg)', icon: CheckCircle2 },
   }[tone];
   return (
     <div role={tone === 'error' ? 'alert' : 'status'} className="flex gap-3 rounded-lg px-4 py-3 text-sm" style={{ background: t.bg }}>
-      <span aria-hidden className="mt-0.5 font-bold" style={{ color: t.fg }}>
-        {t.icon}
-      </span>
+      <t.icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: t.fg }} aria-hidden />
       <div className="min-w-0 text-ink">
         {title && <p className="font-semibold" style={{ color: t.fg }}>{title}</p>}
         {children && <div className={title ? 'mt-0.5' : ''}>{children}</div>}
@@ -183,7 +178,7 @@ export function Modal({ open, onClose, title, children, footer }: { open: boolea
           <header className="flex items-center justify-between border-b border-line px-5 py-3">
             <h2 className="text-base font-bold">{title}</h2>
             <button onClick={onClose} className="rounded p-1 text-ink-3 hover:bg-surface-2" aria-label="Close">
-              ✕
+              <X className="h-5 w-5" aria-hidden />
             </button>
           </header>
           <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
@@ -300,6 +295,7 @@ export function CopyButton({ text, label = 'Copy', size = 'sm' }: { text: string
         }
       }}
     >
+      <Copy className="h-4 w-4" aria-hidden />
       {label}
     </Button>
   );
@@ -317,9 +313,7 @@ export function WhatsAppButton({ href, label = 'WhatsApp', size = 'sm' }: { href
       )}
       style={{ background: '#128C4B' }}
     >
-      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
-        <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.5-.3Z" />
-      </svg>
+      <MessageCircle className="h-4 w-4" aria-hidden />
       {label}
     </a>
   );

@@ -4,6 +4,11 @@ import { Link } from 'react-router-dom';
 export function BrandBar({ right, subtitle }: { right?: ReactNode; subtitle?: string }) {
   return (
     <header className="no-print sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
+      {/* GNAT colours: sky blue and red on white */}
+      <div className="flex h-1" aria-hidden>
+        <div className="flex-[3] bg-sky" />
+        <div className="flex-1 bg-accent" />
+      </div>
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
           <img src="/gnat-logo.png" alt="" className="h-9 w-9 shrink-0 object-contain" />

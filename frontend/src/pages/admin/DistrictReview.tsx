@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft, BadgeCheck, CheckCheck, CheckCircle2, ChevronDown, LockOpen, RotateCcw, Trash2, Undo2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, CopyButton, Loading, StatusBadge, TextField, useConfirm, useToast, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -57,7 +58,7 @@ export default function DistrictReview() {
 
   return (
     <div className="space-y-5">
-      <Link to="/admin/districts" className="text-sm font-semibold text-brand">← All districts</Link>
+      <Link to="/admin/districts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand"><ArrowLeft className="h-4 w-4" aria-hidden />All districts</Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -77,21 +78,26 @@ export default function DistrictReview() {
         <div className="flex flex-wrap gap-2">
           {d.status === 'submitted' && (
             <>
-              <Button onClick={() => setStatus('district', d, 'approved')}>✓ Approve district</Button>
+              <Button onClick={() => setStatus('district', d, 'approved')}><CheckCircle2 className="h-4 w-4" aria-hidden />Approve district</Button>
               {submittedLocals > 0 && (
                 <Button variant="secondary" onClick={() => run(() => api.admin.post(`/admin/districts/${d.id}/approve-all`), 'District and locals approved')}>
-                  ✓ Approve district + {plural(submittedLocals, 'submitted local')}
+                  <CheckCheck className="h-4 w-4" aria-hidden />
+                  Approve district + {plural(submittedLocals, 'submitted local')}
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => setStatus('district', d, 'returned')}>↺ Return for correction</Button>
+              <Button variant="secondary" onClick={() => setStatus('district', d, 'returned')}>
+                <Undo2 className="h-4 w-4" aria-hidden />
+                Return for correction
+              </Button>
             </>
           )}
           {(d.status === 'approved' || d.status === 'submitted') && (
-            <Button variant="ghost" onClick={() => setStatus('district', d, 'draft')}>Reopen for editing</Button>
+            <Button variant="ghost" onClick={() => setStatus('district', d, 'draft')}><LockOpen className="h-4 w-4" aria-hidden />Reopen for editing</Button>
           )}
           {(d.status === 'draft' || d.status === 'returned') && <p className="text-sm text-ink-3">Waiting for the district chairman to submit.</p>}
           {!d.verified && (
             <Button variant="secondary" onClick={() => run(() => api.admin.patch(`/admin/districts/${d.id}`, { verified: true }), 'Marked as verified')}>
+              <BadgeCheck className="h-4 w-4" aria-hidden />
               Mark as genuine
             </Button>
           )}
@@ -124,6 +130,7 @@ export default function DistrictReview() {
                 if (ok) run(() => api.admin.post(`/admin/districts/${d.id}/reset-code`), 'New code created');
               }}
             >
+              <RotateCcw className="h-4 w-4" aria-hidden />
               Reset code
             </Button>
           </div>
@@ -207,6 +214,7 @@ export default function DistrictReview() {
             }
           }}
         >
+          <Trash2 className="h-4 w-4" aria-hidden />
           Delete district
         </Button>
       </Card>
@@ -235,7 +243,7 @@ function LocalItem({ l, districtName, expanded, toggle, catLabel, onStatus, onRe
         </span>
         <span className="flex shrink-0 items-center gap-2">
           <StatusBadge status={l.status} />
-          <span aria-hidden className="text-ink-3">{expanded ? '▴' : '▾'}</span>
+          <ChevronDown className={`h-4 w-4 text-ink-3 transition ${expanded ? 'rotate-180' : ''}`} aria-hidden />
         </span>
       </button>
       {expanded && (
@@ -255,8 +263,8 @@ function LocalItem({ l, districtName, expanded, toggle, catLabel, onStatus, onRe
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {l.status === 'submitted' && (
               <>
-                <Button size="sm" onClick={() => onStatus('approved')}>✓ Approve</Button>
-                <Button size="sm" variant="secondary" onClick={() => onStatus('returned')}>↺ Return</Button>
+                <Button size="sm" onClick={() => onStatus('approved')}><CheckCircle2 className="h-4 w-4" aria-hidden />Approve</Button>
+                <Button size="sm" variant="secondary" onClick={() => onStatus('returned')}><Undo2 className="h-4 w-4" aria-hidden />Return</Button>
               </>
             )}
             {(l.status === 'submitted' || l.status === 'approved') && <Button size="sm" variant="ghost" onClick={() => onStatus('draft')}>Reopen</Button>}

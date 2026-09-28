@@ -44,7 +44,7 @@ export function intParam(v: unknown): number {
   return n;
 }
 
-export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: err.message, details: err.details });
   }
@@ -54,8 +54,8 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
   if (err?.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON' });
   }
-  console.error(err);
-  res.status(500).json({ error: 'Something went wrong on the server. Please try again.' });
+  console.error(JSON.stringify({ level: 'error', msg: 'unhandled', id: req.id, path: req.path, error: String(err?.stack ?? err) }));
+  res.status(500).json({ error: `Something went wrong on the server. Please try again. (Ref: ${req.id?.slice(0, 8) ?? 'n/a'})` });
 }
 
 // ----- shared validators -----

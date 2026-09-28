@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronRight, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Alert, Input, Loading, Select, StatusBadge } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -61,7 +62,10 @@ export default function Structure() {
     <div>
       <PageTitle title="Structure" sub={`GNAT ${tree.region.name} → Districts → Locals → Basic units`} />
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_18rem]">
-        <Input placeholder="Search any district, local or workplace…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search structure" />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
+          <Input className="pl-9" placeholder="Search any district, local or workplace…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search structure" />
+        </div>
         <Select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Filter by category">
           <option value="">All categories</option>
           {meta?.categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -78,7 +82,7 @@ export default function Structure() {
               <details open={expandAll} className="group">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 hover:bg-surface-2">
                   <span className="min-w-0">
-                    <span className="mr-2 inline-block text-ink-3 transition group-open:rotate-90" aria-hidden>▸</span>
+                    <ChevronRight className="mr-1.5 inline-block h-4 w-4 text-ink-3 transition group-open:rotate-90" aria-hidden />
                     <b className="text-ink">{d.name}</b>
                     <span className="ml-2 text-sm text-ink-3">{plural(d.locals.length, 'local')}</span>
                     {d.politicalDistricts.length > 0 && <span className="block pl-5 text-xs text-ink-3">Covers: {d.politicalDistricts.join(', ')}</span>}
@@ -94,7 +98,7 @@ export default function Structure() {
                       <details open={expandAll} className="group/l">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1">
                           <span>
-                            <span className="mr-1.5 inline-block text-ink-3 transition group-open/l:rotate-90" aria-hidden>▸</span>
+                            <ChevronRight className="mr-1 inline-block h-4 w-4 text-ink-3 transition group-open/l:rotate-90" aria-hidden />
                             <span className="font-semibold text-ink">{l.name}</span>
                             <span className="ml-2 text-xs text-ink-3">{plural(l.units.length, 'workplace')}</span>
                           </span>

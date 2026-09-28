@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { config } from './config';
 import { pool } from './db';
 import { errorHandler } from './http';
+import { requestLogger } from './logging';
 import { adminRouter } from './routes/admin';
 import { districtRouter } from './routes/district';
 import { localRouter } from './routes/local';
@@ -25,11 +26,12 @@ export function createApp() {
   const app = express();
   app.set('trust proxy', 1); // Railway terminates TLS in front of us
   app.disable('x-powered-by');
+  if (process.env.NODE_ENV !== 'test') app.use(requestLogger);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(
     cors({
       origin: (origin, cb) => cb(null, !origin || originAllowed(origin)),
-      exposedHeaders: ['Content-Disposition'],
+      exposedHeaders: ['Content-Disposition', 'X-Request-Id'],
       maxAge: 86400,
     }),
   );

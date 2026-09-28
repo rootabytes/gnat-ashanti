@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, CheckCircle2, ClipboardList, CloudOff, Plus, Search, Trash2 } from 'lucide-react';
 import type { Category, Unit } from '../lib/types';
 import { Alert, Button, Empty, Input, Select, Spinner, Textarea, useConfirm } from './ui';
 
@@ -85,15 +86,30 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
     [save, storageKey],
   );
 
+  const pendingRows = useRef<Unit[] | null>(null);
   const update = (next: Unit[]) => {
     setRows(next);
     onChange?.(next);
     writeDraft(storageKey, { units: next, at: Date.now() });
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => doSave(next), 900);
+    pendingRows.current = next;
+    timer.current = window.setTimeout(() => {
+      pendingRows.current = null;
+      doSave(next);
+    }, 900);
   };
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // Leaving the step (e.g. tapping Review straight after adding a school) must
+  // not drop the pending save: send it now instead of waiting for the timer.
+  const flushRef = useRef(doSave);
+  flushRef.current = doSave;
+  useEffect(
+    () => () => {
+      window.clearTimeout(timer.current);
+      if (pendingRows.current) flushRef.current(pendingRows.current);
+    },
+    [],
+  );
 
   // Retry automatically when the connection comes back.
   useEffect(() => {
@@ -185,7 +201,7 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
               </Select>
-              <Button type="submit" disabled={name.trim().length < 2}>+ Add</Button>
+              <Button type="submit" disabled={name.trim().length < 2}><Plus className="h-4 w-4" aria-hidden />Add</Button>
             </form>
           ) : (
             <div className="space-y-2">
@@ -196,12 +212,13 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </Select>
-                <Button onClick={addBulk} disabled={!bulkText.trim()}>Add all</Button>
+                <Button onClick={addBulk} disabled={!bulkText.trim()}><Plus className="h-4 w-4" aria-hidden />Add all</Button>
               </div>
             </div>
           )}
-          <button className="mt-2 text-sm font-semibold text-brand" onClick={() => setBulk((b) => !b)}>
-            {bulk ? '← Add one at a time' : 'Have a long list? Paste many at once'}
+          <button className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand" onClick={() => setBulk((b) => !b)}>
+            {bulk ? <ArrowLeft className="h-4 w-4" aria-hidden /> : <ClipboardList className="h-4 w-4" aria-hidden />}
+            {bulk ? 'Add one at a time' : 'Have a long list? Paste many at once'}
           </button>
         </div>
       )}
@@ -214,7 +231,12 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
       </div>
       {error && <Alert tone={state === 'offline' ? 'warn' : 'error'}>{error}</Alert>}
 
-      {rows.length > 12 && <Input placeholder="Search this list…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workplaces" />}
+      {rows.length > 12 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
+          <Input className="pl-9" placeholder="Search this list…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workplaces" />
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <Empty title="No workplaces yet">{editable ? 'Add the first one above.' : null}</Empty>
@@ -271,7 +293,7 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
                         if (ok) update(rows.filter((_, j) => j !== i));
                       }}
                     >
-                      ✕
+                      <Trash2 className="h-4 w-4" aria-hidden />
                     </Button>
                   </div>
                 </>
@@ -308,8 +330,18 @@ function SaveIndicator({ state }: { state: SaveState }) {
         <Spinner className="h-3.5 w-3.5" /> Saving…
       </span>
     );
-  if (state === 'saved') return <span className="text-[var(--st-approved)]" role="status">✓ Saved</span>;
-  if (state === 'offline') return <span className="text-[var(--st-returned)]" role="status">⚠ Offline: kept on this phone</span>;
+  if (state === 'saved')
+    return (
+      <span className="inline-flex items-center gap-1 text-[var(--st-approved)]" role="status">
+        <CheckCircle2 className="h-4 w-4" aria-hidden /> Saved
+      </span>
+    );
+  if (state === 'offline')
+    return (
+      <span className="inline-flex items-center gap-1 text-[var(--st-returned)]" role="status">
+        <CloudOff className="h-4 w-4" aria-hidden /> Offline: kept on this phone
+      </span>
+    );
   if (state === 'error') return <span className="text-danger" role="status">! Not saved</span>;
   return <span className="text-ink-3">Changes save automatically</span>;
 }

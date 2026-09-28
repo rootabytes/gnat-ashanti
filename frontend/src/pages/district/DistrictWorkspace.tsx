@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Pencil, Plus, RotateCcw, Send, Share2, Trash2 } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ChairShell, PoliticalPicker, StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
 import { Alert, Button, Card, CopyButton, Empty, Field, Loading, Modal, StatusBadge, Textarea, TextField, useConfirm, useToast, WhatsAppButton } from '../../components/ui';
@@ -233,6 +234,7 @@ function DistrictFlow() {
               onBack={() => setStep(2)}
               onNext={editable ? submit : undefined}
               nextLabel="Submit district"
+              nextIcon={Send}
               nextBusy={busy}
               nextDisabled={!detailsDone || !d.politicalDistricts.length || !d.locals.length}
             />
@@ -306,7 +308,8 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
           </div>
           {err && <Alert tone="error">{err}</Alert>}
           <Button type="submit" busy={busy} disabled={form.name.trim().length < 2}>
-            + Add local
+            <Plus className="h-4 w-4" aria-hidden />
+            Add local
           </Button>
         </form>
       )}
@@ -334,12 +337,14 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setSharing(l)}>
+                  <Share2 className="h-4 w-4" aria-hidden />
                   Share code
                 </Button>
                 <Link to={`/district/locals/${l.id}`} className="inline-flex h-8 items-center rounded-lg border border-line px-3 text-sm font-semibold text-ink hover:bg-surface-2">
                   {l.status === 'draft' || l.status === 'returned' ? 'Fill workplaces' : 'View workplaces'}
                 </Link>
                 <Button size="sm" variant="ghost" onClick={() => setEditing(l)}>
+                  <Pencil className="h-4 w-4" aria-hidden />
                   Edit
                 </Button>
                 {editable && (
@@ -362,6 +367,7 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
                       }
                     }}
                   >
+                    <Trash2 className="h-4 w-4" aria-hidden />
                     Delete
                   </Button>
                 )}
@@ -374,7 +380,7 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
       <ShareLocalModal local={sharing} district={d} onClose={() => setSharing(null)} onChange={(x) => { onChange(x); setSharing(x.locals.find((l) => l.id === sharing?.id) ?? null); }} />
       <EditLocalModal local={editing} canRename={editable} onClose={() => setEditing(null)} onSaved={(x) => { onChange(x); setEditing(null); }} />
 
-      <StepNav onBack={onBack} onNext={onNext} nextLabel="Review →" />
+      <StepNav onBack={onBack} onNext={onNext} nextLabel="Review" />
     </Card>
   );
 }
@@ -414,6 +420,7 @@ function ShareLocalModal({ local, district, onClose, onChange }: { local: LocalS
               }
             }}
           >
+            <RotateCcw className="h-4 w-4" aria-hidden />
             Make a new code
           </Button>
         </details>

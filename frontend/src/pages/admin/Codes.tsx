@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Printer } from 'lucide-react';
 import { Alert, Button, Input, Loading, StatusBadge, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
 import type { Status } from '../../lib/api';
@@ -39,7 +40,7 @@ export default function Codes() {
       <PageTitle
         title="Access codes"
         sub="Every district and local code in one place. Print it, or send codes on WhatsApp."
-        action={<Button variant="secondary" className="no-print" onClick={() => window.print()}>Print list</Button>}
+        action={<Button variant="secondary" className="no-print" onClick={() => window.print()}><Printer className="h-4 w-4" aria-hidden />Print list</Button>}
       />
       <div className="no-print mb-3">
         <Alert tone="warn">Codes let anyone edit that district's or local's form. Share each code only with its chairman.</Alert>

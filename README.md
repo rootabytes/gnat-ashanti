@@ -39,20 +39,58 @@ frontend/   React 19 · Vite · Tailwind 4 · Recharts
   src/pages/         Home, Register, district/, local/, admin/
 ```
 
-## Run locally
+## Continue on your laptop (VS Code)
+
+You need **Node 22** (`nvm use` reads `.nvmrc`), **Git**, and **Docker Desktop** for the local database. If you'd rather not use Docker, install PostgreSQL 16 and create the databases `gnat` and `gnat_test` (user and password `gnat`).
 
 ```bash
-# Postgres running locally with a database "gnat" (user/pass gnat/gnat), or set DATABASE_URL
-cd backend && cp .env.example .env && npm install && ADMIN_EMAIL=me@x.com ADMIN_PASSWORD=secret123456 npm run dev
-cd frontend && npm install && npm run dev      # http://localhost:5173
+git clone https://github.com/rootabytes/gnat-ashanti && cd gnat-ashanti
+code .                                   # VS Code will suggest the recommended extensions
+
+docker compose up -d                     # Postgres on :5432 (gnat and gnat_test)
+
+cd backend && npm install
+cp .env.example .env                     # edit ADMIN_EMAIL / ADMIN_PASSWORD
+npm run dev                              # API on http://localhost:4000
+
+cd ../frontend && npm install
+cp .env.example .env.local               # VITE_API_URL=http://localhost:4000
+npm run dev                              # site on http://localhost:5173
 ```
 
-Tests (these wipe the database in `TEST_DATABASE_URL`, default `gnat_test`):
+The backend reads `.env` automatically in dev mode (`node --env-file`). Open http://localhost:5173/admin to sign in.
+
+Checks to run before pushing (CI runs the same ones):
 
 ```bash
-cd backend && npm test
+cd backend && npm run typecheck && npm test      # wipes the gnat_test database
+cd frontend && npm run build
 ```
 
-## Charts
+Browser tests: see `e2e/README.md`.
 
-The series colours are a brand-derived indigo (`#4040B0` light / `#7A7AE0` dark) and orange (`#EB6834` / `#D95926`). Both pairs pass lightness, chroma, colour-blind separation and contrast checks. Status colours always come with an icon and a label. Every chart has a Table view.
+## Brand
+
+- **Colours:** GNAT red, sky blue and white. The tokens live in `frontend/src/index.css`. Buttons and links use sky `#0369A1` (5.9:1 contrast on white), accents use red `#E0302A`, and there is a matching dark mode.
+- **Font:** Inter (self-hosted through `@fontsource-variable/inter`, so there are no Google Fonts requests). It is also embedded in the PDF report (`backend/assets/fonts`, SIL Open Font License). Excel files use the recipient's default font, because Inter may not be installed on their computer.
+- **Icons:** [Lucide](https://lucide.dev) (`lucide-react`).
+- **Charts:** sky `#0284C7` and red `#E0302A` (dark mode: `#1795DB` and `#E5484D`). Both pairs pass the lightness, chroma, colour-blind separation and contrast checks. Status colours (green approved, violet submitted, amber returned, grey in progress) are kept apart from the brand colours and always come with an icon and a label. Every chart has a Table view.
+
+## Engineering standards in place
+
+- **CI** (`.github/workflows/ci.yml`): typecheck, the end-to-end API test against Postgres 16, the frontend build, and `npm audit` on every push and pull request.
+- **Dependabot:** weekly grouped dependency updates.
+- **Security:**
+  - Access codes stored hashed and encrypted.
+  - Rate-limited sign-in.
+  - Admin passwords hashed with bcrypt.
+  - Validation on every input (zod).
+  - Excel formula injection blocked in CSV exports.
+  - Security headers: Helmet on the API, CSP/HSTS/frame-deny on the site (`frontend/public/_headers`).
+- **Observability:**
+  - One JSON log line per request, with an `X-Request-Id`. No bodies are logged, so there's no personal data in the logs.
+  - Error messages show a reference that matches the log line.
+  - `/api/health` checks the database.
+- **Data integrity:** append-only migrations, run under an advisory lock (safe with more than one replica), and an audit log of every change.
+
+See **[ENTERPRISE.md](ENTERPRISE.md)** for the roadmap.

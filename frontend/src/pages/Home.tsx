@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { KeyRound, LayoutDashboard, UserPlus } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BrandBar, Footer } from '../components/Brand';
 import { Alert, Button, Card, TextField } from '../components/ui';
@@ -41,11 +42,13 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh">
-      <BrandBar right={<Link to="/admin" className="text-sm font-semibold text-ink-2 hover:text-brand">Admin</Link>} />
+      <BrandBar right={<Link to="/admin" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand"><LayoutDashboard className="h-4 w-4" aria-hidden />Admin</Link>} />
       <main className="mx-auto max-w-lg px-4 pt-8">
         <div className="text-center">
           <img src="/gnat-logo.png" alt="GNAT Ashanti logo" className="mx-auto h-28 w-28 object-contain" />
-          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">GNAT Structure Mapping</h1>
+          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
+            GNAT <span className="text-accent">Structure</span> Mapping
+          </h1>
           <p className="mt-2 text-ink-2">
             Map GNAT districts, locals and basic units (workplaces) for your region.
           </p>
@@ -66,7 +69,7 @@ export default function Home() {
           </div>
         )}
 
-        <Card className="mt-6" title="Enter your access code" subtitle="The code the Regional Secretary or your District Chairman sent you.">
+        <Card className="mt-6" title={<span className="inline-flex items-center gap-2"><KeyRound className="h-5 w-5 text-brand" aria-hidden />Enter your access code</span>} subtitle="The code the Regional Secretary or your District Chairman sent you.">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -97,7 +100,8 @@ export default function Home() {
               <p className="font-semibold text-ink">District Chairman without a code?</p>
               <p className="text-sm text-ink-3">Register your GNAT district to get one.</p>
             </div>
-            <Link to="/register" className="inline-flex h-11 items-center justify-center rounded-lg border border-line px-4 font-semibold text-brand hover:bg-surface-2">
+            <Link to="/register" className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-4 font-semibold text-brand hover:bg-surface-2">
+              <UserPlus className="h-4 w-4" aria-hidden />
               Register district
             </Link>
           </div>

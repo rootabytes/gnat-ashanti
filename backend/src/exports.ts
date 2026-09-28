@@ -6,7 +6,9 @@ import type { Response } from 'express';
 import { flatRows, overview } from './analytics';
 import { CATEGORY_LABELS, WorkplaceCategory } from './reference';
 
-const NAVY = '25256B';
+// GNAT colours: sky blue (deep enough for white text) and red.
+const SKY = '0369A1';
+const SKY_LIGHT = 'E0F2FE';
 const RED = 'E0302A';
 const STATUS_LABEL: Record<string, string> = { draft: 'In progress', submitted: 'Submitted', returned: 'Returned', approved: 'Approved' };
 
@@ -17,7 +19,7 @@ const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '_');
 function styleHeader(ws: ExcelJS.Worksheet) {
   const h = ws.getRow(1);
   h.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  h.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${NAVY}` } };
+  h.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${SKY}` } };
   h.alignment = { vertical: 'middle' };
   ws.views = [{ state: 'frozen', ySplit: 1 }];
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columnCount } };
@@ -31,7 +33,7 @@ export async function sendXlsx(res: Response, regionId: number, regionName: stri
 
   const sum = wb.addWorksheet('Summary');
   sum.columns = [{ width: 42 }, { width: 16 }];
-  sum.addRow([`GNAT ${regionName} Region: Mapping Summary`]).font = { bold: true, size: 14, color: { argb: `FF${NAVY}` } };
+  sum.addRow([`GNAT ${regionName} Region: Mapping Summary`]).font = { bold: true, size: 14, color: { argb: `FF${SKY}` } };
   sum.addRow([`Generated ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' })}`]);
   sum.addRow([]);
   const kv: [string, number | string][] = [
@@ -154,8 +156,12 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="GNAT_${safe(regionName)}_Mapping_Report_${stamp()}.pdf"`);
   doc.pipe(res);
+  const fonts = path.join(__dirname, '..', 'assets', 'fonts');
+  doc.registerFont('Inter', path.join(fonts, 'Inter-400.woff'));
+  doc.registerFont('Inter-Semi', path.join(fonts, 'Inter-600.woff'));
+  doc.registerFont('Inter-Bold', path.join(fonts, 'Inter-700.woff'));
 
-  const navy = `#${NAVY}`;
+  const sky = `#${SKY}`;
   const red = `#${RED}`;
   const grey = '#5B5B6E';
   const left = doc.page.margins.left;
@@ -163,11 +169,12 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
 
   const logo = path.join(__dirname, '..', 'assets', 'gnat-logo.png');
   if (fs.existsSync(logo)) doc.image(logo, left, 36, { width: 58 });
-  doc.fillColor(navy).font('Helvetica-Bold').fontSize(18).text('Ghana National Association of Teachers', left + 72, 44);
+  doc.fillColor(sky).font('Inter-Bold').fontSize(18).text('Ghana National Association of Teachers', left + 72, 44);
   doc.fontSize(13).fillColor(red).text(`${regionName} Region: Structure Mapping Report`, left + 72, 68);
-  doc.font('Helvetica').fontSize(9).fillColor(grey)
+  doc.font('Inter').fontSize(9).fillColor(grey)
     .text(`Generated ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' })}`, left + 72, 88);
-  doc.moveTo(left, 112).lineTo(left + width, 112).strokeColor(navy).lineWidth(1.2).stroke();
+  doc.rect(left, 111, width * 0.75, 3).fillColor('#0EA5E9').fill();
+  doc.rect(left + width * 0.75, 111, width * 0.25, 3).fillColor(red).fill();
   doc.y = 124;
 
   // KPI tiles
@@ -181,22 +188,22 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   const ty = doc.y;
   tiles.forEach(([label, value], i) => {
     const x = left + i * (tw + 6);
-    doc.roundedRect(x, ty, tw, 54, 4).fillColor('#F1F1F8').fill();
-    doc.fillColor(navy).font('Helvetica-Bold').fontSize(20).text(value, x + 10, ty + 8, { width: tw - 20 });
-    doc.fillColor(grey).font('Helvetica').fontSize(8.5).text(label, x + 10, ty + 34, { width: tw - 20 });
+    doc.roundedRect(x, ty, tw, 54, 4).fillColor(`#${SKY_LIGHT}`).fill();
+    doc.fillColor(sky).font('Inter-Bold').fontSize(20).text(value, x + 10, ty + 8, { width: tw - 20 });
+    doc.fillColor(grey).font('Inter').fontSize(8.5).text(label, x + 10, ty + 34, { width: tw - 20 });
   });
   doc.y = ty + 70;
 
   const section = (title: string) => {
     if (doc.y > doc.page.height - 140) doc.addPage();
-    doc.moveDown(0.4).fillColor(navy).font('Helvetica-Bold').fontSize(12).text(title, left);
+    doc.moveDown(0.4).fillColor(sky).font('Inter-Bold').fontSize(12).text(title, left);
     doc.moveDown(0.3);
   };
 
   section('Submission progress');
   const prog: [string, Record<string, number>][] = [['Districts', ov.districtStatus], ['Locals', ov.localStatus]];
   prog.forEach(([label, s]) => {
-    doc.font('Helvetica').fontSize(9.5).fillColor('#222')
+    doc.font('Inter').fontSize(9.5).fillColor('#222')
       .text(`${label}: ${s.approved} approved, ${s.submitted} submitted, ${s.returned} returned, ${s.draft} in progress`, left);
   });
 
@@ -206,9 +213,9 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   const barMax = width - labelW - 40;
   for (const c of ov.unitsByCategory) {
     const y = doc.y;
-    doc.font('Helvetica').fontSize(8.5).fillColor('#222').text(c.category, left, y, { width: labelW - 6, lineBreak: false });
+    doc.font('Inter').fontSize(8.5).fillColor('#222').text(c.category, left, y, { width: labelW - 6, lineBreak: false });
     const w = (c.count / maxCat) * barMax;
-    if (w > 0) doc.rect(left + labelW, y + 1, w, 8).fillColor(navy).fill();
+    if (w > 0) doc.rect(left + labelW, y + 1, w, 8).fillColor(sky).fill();
     doc.fillColor('#222').text(String(c.count), left + labelW + w + 4, y, { lineBreak: false });
     doc.y = y + 13;
   }
@@ -223,10 +230,10 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   ];
   const drawHead = () => {
     const y = doc.y;
-    doc.rect(left, y, width, 16).fillColor(navy).fill();
+    doc.rect(left, y, width, 16).fillColor(sky).fill();
     let x = left;
     cols.forEach((c) => {
-      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(8.5).text(c.h, x + 4, y + 4, { width: c.w - 8, lineBreak: false });
+      doc.fillColor('#fff').font('Inter-Bold').fontSize(8.5).text(c.h, x + 4, y + 4, { width: c.w - 8, lineBreak: false });
       x += c.w;
     });
     doc.y = y + 18;
@@ -234,14 +241,14 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   drawHead();
   data.districts.forEach((d, i) => {
     const cells = [d.name, d.political || '(none selected)', String(d.locals), String(d.units), STATUS_LABEL[d.status]];
-    doc.font('Helvetica').fontSize(8.5);
+    doc.font('Inter').fontSize(8.5);
     const h = Math.max(...cells.map((c, j) => doc.heightOfString(c, { width: cols[j].w - 8 }))) + 6;
     if (doc.y + h > doc.page.height - doc.page.margins.bottom) {
       doc.addPage();
       drawHead();
     }
     const y = doc.y;
-    if (i % 2 === 1) doc.rect(left, y, width, h).fillColor('#F6F6FA').fill();
+    if (i % 2 === 1) doc.rect(left, y, width, h).fillColor('#F4F9FD').fill();
     let x = left;
     cells.forEach((c, j) => {
       doc.fillColor('#222').text(c, x + 4, y + 3, { width: cols[j].w - 8 });
@@ -249,16 +256,16 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
     });
     doc.y = y + h;
   });
-  if (!data.districts.length) doc.font('Helvetica-Oblique').fontSize(9).fillColor(grey).text('No districts registered yet.', left);
+  if (!data.districts.length) doc.font('Inter').fontSize(9).fillColor(grey).text('No districts registered yet.', left);
 
   const gaps = ov.coverage.filter((c) => !c.gnatDistricts.length);
   section(`Political districts not yet covered (${gaps.length})`);
-  doc.font('Helvetica').fontSize(9).fillColor('#222')
+  doc.font('Inter').fontSize(9).fillColor('#222')
     .text(gaps.length ? gaps.map((g) => `${g.name} (${g.kind})`).join(', ') : 'All political districts are covered.', left, doc.y, { width });
 
   // Appendix: full structure
   doc.addPage();
-  doc.fillColor(navy).font('Helvetica-Bold').fontSize(14).text('Appendix: Full structure', left);
+  doc.fillColor(sky).font('Inter-Bold').fontSize(14).text('Appendix: Full structure', left);
   doc.moveDown(0.5);
   const unitsByLocal = new Map<string, { name: string; category: string }[]>();
   data.units.forEach((u) => {
@@ -268,15 +275,15 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   });
   for (const d of data.districts) {
     if (doc.y > doc.page.height - 120) doc.addPage();
-    doc.moveDown(0.4).fillColor(red).font('Helvetica-Bold').fontSize(11).text(`${d.name}  `, left, doc.y, { continued: true })
-      .fillColor(grey).font('Helvetica').fontSize(8.5).text(`${STATUS_LABEL[d.status]} · Chairman: ${d.chair_name ?? '-'}`);
+    doc.moveDown(0.4).fillColor(red).font('Inter-Bold').fontSize(11).text(`${d.name}  `, left, doc.y, { continued: true })
+      .fillColor(grey).font('Inter').fontSize(8.5).text(`${STATUS_LABEL[d.status]} · Chairman: ${d.chair_name ?? '-'}`);
     if (d.political) doc.fillColor(grey).fontSize(8.5).text(`Covers: ${d.political}`, left, doc.y, { width });
     for (const l of data.locals.filter((x) => x.district === d.name)) {
       if (doc.y > doc.page.height - 80) doc.addPage();
-      doc.moveDown(0.2).fillColor(navy).font('Helvetica-Bold').fontSize(9.5).text(`${l.name}`, left + 12, doc.y, { continued: true })
-        .fillColor(grey).font('Helvetica').fontSize(8).text(`   ${STATUS_LABEL[l.status]} · ${l.units} workplace(s)`);
+      doc.moveDown(0.2).fillColor(sky).font('Inter-Bold').fontSize(9.5).text(`${l.name}`, left + 12, doc.y, { continued: true })
+        .fillColor(grey).font('Inter').fontSize(8).text(`   ${STATUS_LABEL[l.status]} · ${l.units} workplace(s)`);
       const us = unitsByLocal.get(`${d.name}\u0000${l.name}`) ?? [];
-      doc.fillColor('#222').font('Helvetica').fontSize(8.5);
+      doc.fillColor('#222').font('Inter').fontSize(8.5);
       for (const u of us) {
         if (doc.y > doc.page.height - 60) doc.addPage();
         doc.text(`• ${u.name}  `, left + 24, doc.y, { continued: true, width: width - 24 }).fillColor(grey).text(`(${u.category})`).fillColor('#222');
@@ -289,7 +296,7 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
     doc.switchToPage(i);
     const bottom = doc.page.margins.bottom;
     doc.page.margins.bottom = 0;
-    doc.font('Helvetica').fontSize(7.5).fillColor(grey)
+    doc.font('Inter').fontSize(7.5).fillColor(grey)
       .text(`GNAT ${regionName} · Mapping Report · Page ${i + 1} of ${range.count}`, left, doc.page.height - 28, { width, align: 'center' });
     doc.page.margins.bottom = bottom;
   }

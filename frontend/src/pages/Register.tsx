@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BrandBar, Footer } from '../components/Brand';
 import { Alert, Button, Card, CopyButton, Field, Loading, Select, TextField, WhatsAppButton } from '../components/ui';
@@ -68,7 +69,8 @@ export default function Register() {
                   nav('/district');
                 }}
               >
-                Start filling the form →
+                Start filling the form
+                <ArrowRight className="h-5 w-5" aria-hidden />
               </Button>
             </div>
           </Card>

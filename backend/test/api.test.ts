@@ -1,4 +1,5 @@
 // End-to-end API test against a real Postgres. Wipes the database named in TEST_DATABASE_URL.
+process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgres://gnat:gnat@localhost:5432/gnat_test';
 process.env.ADMIN_EMAIL = 'secretary@example.com';
 process.env.ADMIN_PASSWORD = 'correct-horse-battery';

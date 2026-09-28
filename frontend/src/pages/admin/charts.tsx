@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, STATUS_META } from '../../components/ui';
 import type { Status } from '../../lib/api';
@@ -258,7 +259,10 @@ export function StatusBar({ label, counts }: { label: string; counts: Record<Sta
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
         {order.map((k) => (
           <li key={k} className="flex items-center gap-1">
-            <span style={{ color: STATUS_META[k].fg }} aria-hidden>{STATUS_META[k].icon}</span>
+            {(() => {
+              const I = STATUS_META[k].icon;
+              return <I className="h-3.5 w-3.5" style={{ color: STATUS_META[k].fg }} aria-hidden />;
+            })()}
             {STATUS_META[k].label} <b className="tabular-nums text-ink">{counts[k]}</b>
           </li>
         ))}
@@ -267,10 +271,17 @@ export function StatusBar({ label, counts }: { label: string; counts: Record<Sta
   );
 }
 
-export function StatTile({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
+export function StatTile({ label, value, sub, icon: Icon }: { label: string; value: ReactNode; sub?: ReactNode; icon?: LucideIcon }) {
   return (
     <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-      <p className="text-sm text-ink-3">{label}</p>
+      <p className="flex items-center gap-2 text-sm text-ink-3">
+        {Icon && (
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-soft text-brand">
+            <Icon className="h-4 w-4" aria-hidden />
+          </span>
+        )}
+        {label}
+      </p>
       <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight text-ink">{value}</p>
       {sub && <p className="mt-0.5 text-xs text-ink-3">{sub}</p>}
     </div>

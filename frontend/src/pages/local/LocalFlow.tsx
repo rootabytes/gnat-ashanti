@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Send } from 'lucide-react';
 import { StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
 import { Alert, Button, Card, Field, Loading, Textarea, TextField, useConfirm, useToast } from '../../components/ui';
 import { UnitsEditor } from '../../components/UnitsEditor';
@@ -153,7 +154,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
               save={save}
               onChange={(u) => setUnitCount(u.length)}
             />
-            <StepNav onBack={() => setStep(0)} onNext={() => setStep(2)} nextLabel="Review →" />
+            <StepNav onBack={() => setStep(0)} onNext={() => setStep(2)} nextLabel="Review" />
           </Card>
         )}
 
@@ -193,6 +194,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
               onBack={() => setStep(1)}
               onNext={editable ? submit : undefined}
               nextLabel="Submit local"
+              nextIcon={Send}
               nextBusy={busy}
               nextDisabled={!detailsDone || !data.units.length}
               extra={!editable && data.status === 'submitted' ? <Button variant="secondary" onClick={reopen}>Reopen</Button> : undefined}

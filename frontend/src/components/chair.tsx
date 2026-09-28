@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, Check, LogOut, Search, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { session } from '../lib/api';
 import type { Status } from '../lib/api';
@@ -22,6 +24,7 @@ export function ChairShell({ subtitle, children }: { subtitle: string; children:
               nav('/');
             }}
           >
+            <LogOut className="h-4 w-4" aria-hidden />
             Sign out
           </Button>
         }
@@ -54,7 +57,7 @@ export function Stepper({ steps, current, onSelect }: { steps: { label: string; 
                   )}
                   aria-hidden
                 >
-                  {s.done && !active ? '✓' : i + 1}
+                  {s.done && !active ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
                 </span>
                 {s.label}
                 {s.done && <span className="sr-only">(complete)</span>}
@@ -104,13 +107,14 @@ export function TitleRow({ title, status, children }: { title: string; status: S
 }
 
 /** Sticky bottom bar with Back / Next, so the next action is always under the thumb. */
-export function StepNav({ onBack, onNext, nextLabel = 'Next', nextBusy, nextDisabled, extra }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; nextBusy?: boolean; nextDisabled?: boolean; extra?: ReactNode }) {
+export function StepNav({ onBack, onNext, nextLabel = 'Next', nextIcon: NextIcon = ArrowRight, nextBusy, nextDisabled, extra }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; nextIcon?: LucideIcon; nextBusy?: boolean; nextDisabled?: boolean; extra?: ReactNode }) {
   return (
     <div className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3">
         {onBack ? (
           <Button variant="secondary" onClick={onBack}>
-            ← Back
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Back
           </Button>
         ) : (
           <span />
@@ -120,6 +124,7 @@ export function StepNav({ onBack, onNext, nextLabel = 'Next', nextBusy, nextDisa
           {onNext && (
             <Button onClick={onNext} busy={nextBusy} disabled={nextDisabled}>
               {nextLabel}
+              {!nextBusy && <NextIcon className="h-4 w-4" aria-hidden />}
             </Button>
           )}
         </div>
@@ -151,12 +156,15 @@ export function PoliticalPicker({ all, selected, onChange, disabled }: { all: Po
                 className="inline-flex items-center gap-1 rounded-full bg-brand px-3 py-1 text-sm font-semibold text-brand-ink disabled:opacity-70"
                 aria-label={`Remove ${d.name}`}
               >
-                {d.name} {!disabled && <span aria-hidden>✕</span>}
+                {d.name} {!disabled && <X className="h-3.5 w-3.5" aria-hidden />}
               </button>
             ))}
         </div>
       )}
-      <Input placeholder={`Search ${all.length} districts…`} value={q} onChange={(e) => setQ(e.target.value)} disabled={disabled} aria-label="Search political districts" />
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
+        <Input className="pl-9" placeholder={`Search ${all.length} districts…`} value={q} onChange={(e) => setQ(e.target.value)} disabled={disabled} aria-label="Search political districts" />
+      </div>
       <ul className="max-h-[50vh] divide-y divide-line overflow-y-auto rounded-lg border border-line">
         {shown.map((d) => (
           <li key={d.id}>

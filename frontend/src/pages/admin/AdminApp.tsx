@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Building2, Download, History, KeyRound, LayoutDashboard, LogOut, Network, Settings as SettingsIcon } from 'lucide-react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { BrandBar } from '../../components/Brand';
 import { Alert, Button, Card, cx, Loading, Select, TextField } from '../../components/ui';
@@ -40,13 +41,13 @@ const AdminCtx = createContext<Ctx | null>(null);
 export const useAdmin = () => useContext(AdminCtx)!;
 
 const NAV = [
-  { to: '/admin', label: 'Overview', end: true },
-  { to: '/admin/districts', label: 'Districts' },
-  { to: '/admin/structure', label: 'Structure' },
-  { to: '/admin/codes', label: 'Access codes' },
-  { to: '/admin/downloads', label: 'Downloads' },
-  { to: '/admin/activity', label: 'Activity' },
-  { to: '/admin/settings', label: 'Settings' },
+  { to: '/admin', label: 'Overview', end: true, icon: LayoutDashboard },
+  { to: '/admin/districts', label: 'Districts', icon: Building2 },
+  { to: '/admin/structure', label: 'Structure', icon: Network },
+  { to: '/admin/codes', label: 'Access codes', icon: KeyRound },
+  { to: '/admin/downloads', label: 'Downloads', icon: Download },
+  { to: '/admin/activity', label: 'Activity', icon: History },
+  { to: '/admin/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 export default function AdminApp() {
@@ -130,6 +131,7 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
                 </Select>
               )}
               <Button variant="ghost" size="sm" className="whitespace-nowrap" onClick={signOut}>
+                <LogOut className="h-4 w-4" aria-hidden />
                 Sign out
               </Button>
             </>
@@ -145,11 +147,12 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
                     end={n.end}
                     className={({ isActive }) =>
                       cx(
-                        'block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
+                        'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
                         isActive ? 'bg-brand text-brand-ink' : 'text-ink-2 hover:bg-surface-2',
                       )
                     }
                   >
+                    <n.icon className="h-4 w-4" aria-hidden />
                     {n.label}
                   </NavLink>
                 </li>
