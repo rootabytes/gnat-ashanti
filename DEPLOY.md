@@ -13,7 +13,7 @@ Allow about 20 minutes. Do the steps in order: the website needs the API's addre
 
 ## 1. Railway: database and API
 
-1. Go to **railway.com → New Project → Deploy from GitHub repo** and choose **`gnat-mapping`**.
+1. Go to **railway.com → New Project → Deploy from GitHub repo** and choose **`gnat-ashanti`**.
 2. Open the new service → **Settings**:
    - **Source → Root Directory**: `backend`
    - **Config-as-code → Railway config file**: `backend/railway.json`
@@ -27,12 +27,12 @@ Allow about 20 minutes. Do the steps in order: the website needs the API's addre
    ADMIN_EMAIL=secretary@your-email.com
    ADMIN_PASSWORD=a-strong-temporary-password
    ADMIN_NAME=Regional Secretary
-   ALLOWED_ORIGINS=https://*.gnat-mapping.pages.dev
+   ALLOWED_ORIGINS=https://*.gnat-ashanti.pages.dev
    ```
 
    - `JWT_SECRET` must **never change** after launch. It also encrypts the stored access codes. If `${{secret(64)}}` isn't accepted, paste any random 64-character string.
    - Use a temporary password. You will change it inside the dashboard.
-5. **Settings → Networking → Generate Domain**. Copy the address, e.g. `https://gnat-mapping-production.up.railway.app`.
+5. **Settings → Networking → Generate Domain**. Copy the address, e.g. `https://gnat-ashanti-production.up.railway.app`.
 6. Open `https://<that address>/api/health`. You should see `{"ok":true}`.
    The database tables, the 43 Ashanti districts and the admin account are created automatically on first start.
 
@@ -40,7 +40,7 @@ Allow about 20 minutes. Do the steps in order: the website needs the API's addre
 
 ## 2. Cloudflare Pages: the website
 
-1. Go to **dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git** and choose **`gnat-mapping`**.
+1. Go to **dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git** and choose **`gnat-ashanti`**.
 2. Build settings:
    - **Framework preset**: `Vite` (or None)
    - **Root directory**: `frontend`
@@ -49,14 +49,14 @@ Allow about 20 minutes. Do the steps in order: the website needs the API's addre
 3. **Environment variables** (add to both Production and Preview):
    - `VITE_API_URL` = the Railway address from step 1.5 (no trailing slash)
    - `NODE_VERSION` = `22`
-4. **Save and Deploy**. When it finishes you get an address like `https://gnat-mapping.pages.dev`.
+4. **Save and Deploy**. When it finishes you get an address like `https://gnat-ashanti.pages.dev`.
 
 ## 3. Connect them
 
 Back in Railway → API service → **Variables**, set:
 
 ```
-ALLOWED_ORIGINS=https://gnat-mapping.pages.dev,https://*.gnat-mapping.pages.dev
+ALLOWED_ORIGINS=https://gnat-ashanti.pages.dev,https://*.gnat-ashanti.pages.dev
 ```
 
 (Add your custom domain too if you set one, e.g. `https://mapping.gnatashanti.org`.) Railway redeploys automatically.
