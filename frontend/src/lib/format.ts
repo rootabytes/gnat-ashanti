@@ -30,6 +30,15 @@ export function whatsappLink(text: string, phone?: string | null) {
   return `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * sms: link that opens the sender's own messaging app with the text filled in,
+ * for chairmen without WhatsApp. No SMS provider or cost to the system; the
+ * sender's normal SMS rate applies. "?&body=" works on both Android and iPhone.
+ */
+export function smsLink(text: string, phone?: string | null) {
+  return `sms:${phone ?? ''}?&body=${encodeURIComponent(text)}`;
+}
+
 export function accessLink(code: string) {
   return `${window.location.origin}/?code=${encodeURIComponent(code)}`;
 }
@@ -38,10 +47,31 @@ export function districtInviteMessage(name: string, code: string) {
   return `GNAT Mapping: ${name} District\n\nPlease open this link to fill in your district's mapping form:\n${accessLink(code)}\n\nYour access code: ${code}\nKeep this code private.`;
 }
 
+/** Sign-in details for a new admin, sent from the super admin's own WhatsApp or SMS. */
+export function adminInviteMessage(name: string, access: string, phone: string | null, tempPassword: string) {
+  return [
+    'GNAT Mapping: admin access',
+    '',
+    `Hello ${name}, you are now an admin for ${access}.`,
+    '',
+    `Sign in here: ${window.location.origin}/admin`,
+    `Phone number: ${fmtPhone(phone)}`,
+    `Temporary password: ${tempPassword}`,
+    '',
+    'When you sign in, add your email and choose your own password. The temporary password works for 7 days. Please delete this message afterwards.',
+  ].join('\n');
+}
+
 export function localInviteMessage(localName: string, districtName: string, code: string) {
   return `GNAT Mapping: ${localName} Local (${districtName} District)\n\nPlease open this link and list the basic units / workplaces in your local:\n${accessLink(code)}\n\nYour access code: ${code}\nKeep this code private.`;
 }
 
 export function plural(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
+}
+
+/** Ghana Post GPS digital address, same rules as the server: AK0395028 → AK-039-5028. */
+export function normalizeGps(s: string): string | null {
+  const m = /^([A-Z]{2})[\s-]*(\d{3,4}?)[\s-]*(\d{3,4})$/.exec(s.trim().toUpperCase());
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }

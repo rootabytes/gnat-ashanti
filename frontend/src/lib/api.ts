@@ -1,4 +1,5 @@
-const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000').replace(/\/$/, '') + '/api';
+export const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000').replace(/\/$/, '') + '/api';
+const BASE = API_BASE;
 
 export type Role = 'district' | 'local' | 'admin';
 export type Status = 'draft' | 'submitted' | 'returned' | 'approved';
@@ -12,6 +13,7 @@ export interface AdminSession {
   token: string;
   name: string;
   email: string;
+  mustChangePassword?: boolean;
 }
 
 const CHAIR_KEY = 'gnat.chair';
@@ -64,12 +66,16 @@ type Who = 'chair' | 'admin' | 'none';
 
 async function request<T>(method: string, path: string, body: unknown, who: Who): Promise<T> {
   const token = who === 'chair' ? chairMem?.token : who === 'admin' ? adminMem?.token : undefined;
+  const file = body instanceof Blob;
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       method,
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: {
+        'Content-Type': file ? 'application/octet-stream' : 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: body === undefined ? undefined : file ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'No internet connection. Your work is kept on this phone. Try again when you are back online.');
@@ -97,6 +103,8 @@ export const api = {
     put: <T>(p: string, b: unknown) => request<T>('PUT', p, b, 'chair'),
     patch: <T>(p: string, b: unknown) => request<T>('PATCH', p, b, 'chair'),
     del: <T>(p: string) => request<T>('DELETE', p, undefined, 'chair'),
+    /** Sends a file as the raw request body. */
+    upload: <T>(p: string, f: Blob) => request<T>('POST', p, f, 'chair'),
   },
   admin: {
     get: <T>(p: string) => request<T>('GET', p, undefined, 'admin'),

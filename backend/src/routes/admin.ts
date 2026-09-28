@@ -5,10 +5,12 @@ import { z } from 'zod';
 import { duplicates, overview } from '../analytics';
 import { audit } from '../audit';
 import { requireRole, signSession } from '../auth';
-import { decryptCode, newCode } from '../crypto';
+import { config } from '../config';
+import { decryptCode, generateTempPassword, newCode } from '../crypto';
 import { one, query } from '../db';
 import { sendCsv, sendPdf, sendXlsx } from '../exports';
 import { ghPhone, HttpError, intParam, nameStr, optionalText, parse } from '../http';
+import { isDemoEmail } from '../demo';
 import { districtDetail, localDetail } from '../services';
 
 export const adminRouter = Router();
@@ -16,19 +18,39 @@ export const adminRouter = Router();
 // Compared against when the email is unknown, so response time doesn't reveal which emails exist.
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 
-const loginLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false,
-  message: { error: 'Too many sign-in attempts. Please wait 15 minutes.' } });
+// Only failed attempts count: it stops password guessing without locking out an admin on several devices.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many sign-in attempts. Please wait 15 minutes.' },
+});
+
+/** `login` is an email address or a Ghana phone number (`email` is accepted as an older name for it). */
+export const loginSchema = z.object({ login: z.string().trim().min(3).max(200), password: z.string().min(1).max(200) });
+
+/** Finds an admin by email, or by phone number in any common Ghana format. */
+async function findAdminBySignIn(login: string) {
+  if (login.includes('@')) return one('SELECT * FROM admins WHERE email = $1', [login.toLowerCase()]);
+  const phone = ghPhone.safeParse(login);
+  return phone.success && phone.data ? one('SELECT * FROM admins WHERE phone = $1', [phone.data]) : undefined;
+}
 
 adminRouter.post('/login', loginLimiter, async (req, res) => {
-  const b = parse(z.object({ email: z.string().trim().toLowerCase().email(), password: z.string().min(1).max(200) }), req.body);
-  const a = await one('SELECT * FROM admins WHERE email = $1', [b.email]);
+  const b = parse(loginSchema, { login: req.body?.login ?? req.body?.email, password: req.body?.password });
+  const a = await findAdminBySignIn(b.login);
   const ok = await bcrypt.compare(b.password, a?.password_hash ?? DUMMY_HASH);
-  if (!a || !ok) throw new HttpError(401, 'Email or password is not correct.');
+  if (!a || !ok) throw new HttpError(401, 'Email, phone number or password is not correct.');
+  if (a.password_expires_at && new Date(a.password_expires_at) < new Date()) {
+    throw new HttpError(401, 'This temporary password has expired. Ask the super admin to send you a new one.');
+  }
   await query('UPDATE admins SET last_login_at = now() WHERE id = $1', [a.id]);
   const token = signSession({ role: 'admin', adminId: a.id, regionId: a.region_id, name: a.name });
   req.session = { role: 'admin', adminId: a.id, regionId: a.region_id, name: a.name };
   await audit(req, 'admin.login', { type: 'admin', id: a.id, regionId: a.region_id });
-  res.json({ token, name: a.name, email: a.email });
+  res.json({ token, name: a.name, email: a.email, mustChangePassword: a.must_change_password });
 });
 
 adminRouter.use(requireRole('admin'));
@@ -56,19 +78,54 @@ async function districtInScope(req: any, id: number) {
 
 async function localInScope(req: any, id: number) {
   const a = admin(req);
-  const l = await one('SELECT l.id, l.name, l.district_id, d.region_id FROM locals l JOIN districts d ON d.id = l.district_id WHERE l.id = $1', [id]);
+  const l = await one(
+    'SELECT l.id, l.name, l.district_id, d.region_id FROM locals l JOIN districts d ON d.id = l.district_id WHERE l.id = $1',
+    [id],
+  );
   if (!l || (a.regionId && l.region_id !== a.regionId)) throw new HttpError(404, 'Local not found');
   return l;
 }
 
+const ADMIN_FIELDS = 'id, email, phone, name, region_id, must_change_password';
+const isDemoAdmin = (a: { email: string | null }) => config.demoMode && !!a.email && isDemoEmail(a.email);
+
 adminRouter.get('/me', async (req, res) => {
-  const a = await one('SELECT id, email, name, region_id FROM admins WHERE id = $1', [admin(req).adminId]);
+  const a = await one(`SELECT ${ADMIN_FIELDS} FROM admins WHERE id = $1`, [admin(req).adminId]);
   const regions = await query(
     `SELECT id, name, code, active, political_regions, registration_key FROM regions
      ${a.region_id ? 'WHERE id = $1' : ''} ORDER BY active DESC, name`,
     a.region_id ? [a.region_id] : [],
   );
-  res.json({ ...a, regions });
+  res.json({ ...a, demo: isDemoAdmin(a), regions });
+});
+
+export const profileSchema = z.object({
+  name: nameStr.optional(),
+  email: z.string().trim().toLowerCase().email('enter a valid email address').max(200).optional(),
+  phone: ghPhone,
+});
+
+/** An admin keeps their own name, email and phone up to date (at first sign-in: adds their email). */
+adminRouter.patch('/me', async (req, res) => {
+  const b = parse(profileSchema, req.body);
+  const cur = await one(`SELECT ${ADMIN_FIELDS} FROM admins WHERE id = $1`, [admin(req).adminId]);
+  if (isDemoAdmin(cur)) throw new HttpError(403, 'Demo accounts keep their published sign-in details.');
+  try {
+    await query('UPDATE admins SET name = COALESCE($2, name), email = COALESCE($3, email), phone = COALESCE($4, phone) WHERE id = $1', [
+      cur.id,
+      b.name ?? null,
+      b.email ?? null,
+      b.phone ?? null,
+    ]);
+  } catch (e: any) {
+    if (e?.code === '23505') throw new HttpError(409, 'That email or phone number is already used by another admin.');
+    throw e;
+  }
+  const a = await one(`SELECT ${ADMIN_FIELDS} FROM admins WHERE id = $1`, [cur.id]);
+  await audit(req, 'admin.profile', { type: 'admin', id: a.id, regionId: a.region_id }, { name: a.name, email: a.email, phone: a.phone });
+  // A fresh token carries the new name into the activity log.
+  const token = signSession({ role: 'admin', adminId: a.id, regionId: a.region_id, name: a.name });
+  res.json({ token, name: a.name, email: a.email });
 });
 
 adminRouter.get('/overview', async (req, res) => {
@@ -97,17 +154,29 @@ adminRouter.get('/tree', async (req, res) => {
       [r.id],
     ),
     query(
-      `SELECT b.id, b.local_id, b.name, b.category FROM basic_units b JOIN locals l ON l.id = b.local_id JOIN districts d ON d.id = l.district_id
+      `SELECT b.id, b.local_id, b.name, b.category, b.gps_address FROM basic_units b JOIN locals l ON l.id = b.local_id JOIN districts d ON d.id = l.district_id
        WHERE d.region_id = $1 ORDER BY b.sort, b.id`,
       [r.id],
     ),
   ]);
   const unitsBy = new Map<number, any[]>();
-  units.forEach((u) => (unitsBy.get(u.local_id) ?? unitsBy.set(u.local_id, []).get(u.local_id)!).push({ id: u.id, name: u.name, category: u.category }));
+  units.forEach((u) =>
+    (unitsBy.get(u.local_id) ?? unitsBy.set(u.local_id, []).get(u.local_id)!).push({
+      id: u.id,
+      name: u.name,
+      category: u.category,
+      gpsAddress: u.gps_address,
+    }),
+  );
   const localsBy = new Map<number, any[]>();
   locals.forEach((l) =>
     (localsBy.get(l.district_id) ?? localsBy.set(l.district_id, []).get(l.district_id)!).push({
-      id: l.id, name: l.name, status: l.status, chairName: l.chair_name, chairPhone: l.chair_phone, units: unitsBy.get(l.id) ?? [],
+      id: l.id,
+      name: l.name,
+      status: l.status,
+      chairName: l.chair_name,
+      chairPhone: l.chair_phone,
+      units: unitsBy.get(l.id) ?? [],
     }),
   );
   const polBy = new Map<number, string[]>();
@@ -115,8 +184,13 @@ adminRouter.get('/tree', async (req, res) => {
   res.json({
     region: r,
     districts: districts.map((d) => ({
-      id: d.id, name: d.name, status: d.status, chairName: d.chair_name, chairPhone: d.chair_phone,
-      politicalDistricts: polBy.get(d.id) ?? [], locals: localsBy.get(d.id) ?? [],
+      id: d.id,
+      name: d.name,
+      status: d.status,
+      chairName: d.chair_name,
+      chairPhone: d.chair_phone,
+      politicalDistricts: polBy.get(d.id) ?? [],
+      locals: localsBy.get(d.id) ?? [],
     })),
   });
 });
@@ -131,7 +205,7 @@ adminRouter.get('/locals/:id', async (req, res) => {
   res.json(await localDetail(l.id, true));
 });
 
-const createDistrictSchema = z.object({
+export const createDistrictSchema = z.object({
   name: nameStr,
   chairName: optionalText(150),
   chairPhone: ghPhone,
@@ -151,12 +225,17 @@ adminRouter.post('/districts', async (req, res) => {
   res.status(201).json(await districtDetail(d.id, { includeCodes: true, includeUnits: true }));
 });
 
+export const editDistrictSchema = z.object({
+  name: nameStr.optional(),
+  chairName: optionalText(150),
+  chairPhone: ghPhone,
+  chairGroup: optionalText(150),
+  verified: z.boolean().optional(),
+});
+
 adminRouter.patch('/districts/:id', async (req, res) => {
   const d = await districtInScope(req, intParam(req.params.id));
-  const b = parse(
-    z.object({ name: nameStr.optional(), chairName: optionalText(150), chairPhone: ghPhone, chairGroup: optionalText(150), verified: z.boolean().optional() }),
-    req.body,
-  );
+  const b = parse(editDistrictSchema, req.body);
   await query(
     `UPDATE districts SET name = COALESCE($2, name), chair_name = COALESCE($3, chair_name), chair_phone = COALESCE($4, chair_phone),
        chair_group = COALESCE($5, chair_group), verified = COALESCE($6, verified), updated_at = now() WHERE id = $1`,
@@ -173,7 +252,7 @@ adminRouter.delete('/districts/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-const statusSchema = z.object({
+export const statusSchema = z.object({
   status: z.enum(['approved', 'returned', 'draft']),
   note: optionalText(1000),
 });
@@ -207,8 +286,14 @@ adminRouter.post('/locals/:id/status', async (req, res) => {
 /** Approve a district together with every submitted local in it. */
 adminRouter.post('/districts/:id/approve-all', async (req, res) => {
   const d = await districtInScope(req, intParam(req.params.id));
-  await query(`UPDATE districts SET status = 'approved', admin_note = NULL, approved_at = now(), updated_at = now() WHERE id = $1 AND status = 'submitted'`, [d.id]);
-  await query(`UPDATE locals SET status = 'approved', admin_note = NULL, approved_at = now(), updated_at = now() WHERE district_id = $1 AND status = 'submitted'`, [d.id]);
+  await query(
+    `UPDATE districts SET status = 'approved', admin_note = NULL, approved_at = now(), updated_at = now() WHERE id = $1 AND status = 'submitted'`,
+    [d.id],
+  );
+  await query(
+    `UPDATE locals SET status = 'approved', admin_note = NULL, approved_at = now(), updated_at = now() WHERE district_id = $1 AND status = 'submitted'`,
+    [d.id],
+  );
   await audit(req, 'district.approve_all', { type: 'district', id: d.id, regionId: d.region_id });
   res.json(await districtDetail(d.id, { includeCodes: true, includeUnits: true }));
 });
@@ -223,7 +308,11 @@ adminRouter.delete('/locals/:id', async (req, res) => {
 adminRouter.post('/districts/:id/reset-code', async (req, res) => {
   const d = await districtInScope(req, intParam(req.params.id));
   const c = newCode('D');
-  await query('UPDATE districts SET code_lookup = $2, code_enc = $3, code_version = code_version + 1 WHERE id = $1', [d.id, c.lookup, c.enc]);
+  await query('UPDATE districts SET code_lookup = $2, code_enc = $3, code_version = code_version + 1 WHERE id = $1', [
+    d.id,
+    c.lookup,
+    c.enc,
+  ]);
   await audit(req, 'district.reset_code', { type: 'district', id: d.id, regionId: d.region_id });
   res.json(await districtDetail(d.id, { includeCodes: true, includeUnits: true }));
 });
@@ -266,25 +355,29 @@ adminRouter.get('/audit', async (req, res) => {
 
 // ----- settings -----
 
+export const regionSchema = z.object({
+  registrationKey: z.string().trim().max(100).optional().nullable(),
+  active: z.boolean().optional(),
+  politicalRegions: z.array(z.string().trim().min(2).max(60)).max(10).optional(),
+});
+
 adminRouter.patch('/regions/:id', async (req, res) => {
   const a = admin(req);
   const id = intParam(req.params.id);
   if (a.regionId && a.regionId !== id) throw new HttpError(404, 'Region not found');
-  const b = parse(
-    z.object({
-      registrationKey: z.string().trim().max(100).optional().nullable(),
-      active: z.boolean().optional(),
-      politicalRegions: z.array(z.string().trim().min(2).max(60)).max(10).optional(),
-    }),
-    req.body,
-  );
-  if (b.active !== undefined && a.regionId) throw new HttpError(403, 'Only a national admin can open or close regions.');
+  const b = parse(regionSchema, req.body);
+  if (b.active !== undefined && a.regionId) throw new HttpError(403, 'Only the super admin can open or close regions.');
   await query(
     `UPDATE regions SET registration_key = CASE WHEN $2::boolean THEN $3 ELSE registration_key END,
        active = COALESCE($4, active), political_regions = COALESCE($5, political_regions) WHERE id = $1`,
     [id, b.registrationKey !== undefined, b.registrationKey || null, b.active ?? null, b.politicalRegions ?? null],
   );
-  await audit(req, 'region.edit', { type: 'region', id, regionId: id }, { ...b, registrationKey: b.registrationKey ? '(set)' : b.registrationKey });
+  await audit(
+    req,
+    'region.edit',
+    { type: 'region', id, regionId: id },
+    { ...b, registrationKey: b.registrationKey ? '(set)' : b.registrationKey },
+  );
   res.json(await one('SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1', [id]));
 });
 
@@ -293,9 +386,11 @@ adminRouter.get('/political-districts', async (req, res) => {
   res.json(await query('SELECT id, name, kind FROM political_districts WHERE region_id = $1 ORDER BY name', [r.id]));
 });
 
+export const politicalDistrictSchema = z.object({ name: nameStr, kind: z.enum(['Metropolitan', 'Municipal', 'District']) });
+
 adminRouter.post('/political-districts', async (req, res) => {
   const r = await region(req);
-  const b = parse(z.object({ name: nameStr, kind: z.enum(['Metropolitan', 'Municipal', 'District']) }), req.body);
+  const b = parse(politicalDistrictSchema, req.body);
   const row = await one('INSERT INTO political_districts (region_id, name, kind) VALUES ($1,$2,$3) RETURNING *', [r.id, b.name, b.kind]);
   await audit(req, 'political.create', { type: 'political', id: row.id, regionId: r.id }, b);
   res.status(201).json(row);
@@ -310,30 +405,99 @@ adminRouter.delete('/political-districts/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+export const passwordSchema = z.object({ current: z.string().min(1), next: z.string().min(10, 'must be at least 10 characters').max(200) });
+
 adminRouter.post('/password', async (req, res) => {
-  const b = parse(z.object({ current: z.string().min(1), next: z.string().min(10, 'must be at least 10 characters').max(200) }), req.body);
-  const a = await one('SELECT password_hash FROM admins WHERE id = $1', [admin(req).adminId]);
+  const b = parse(passwordSchema, req.body);
+  const a = await one('SELECT email, password_hash FROM admins WHERE id = $1', [admin(req).adminId]);
+  if (isDemoAdmin(a)) throw new HttpError(403, 'Demo accounts keep their published password so every tester can sign in.');
   if (!(await bcrypt.compare(b.current, a.password_hash))) throw new HttpError(400, 'Current password is not correct.');
-  await query('UPDATE admins SET password_hash = $2 WHERE id = $1', [admin(req).adminId, await bcrypt.hash(b.next, 12)]);
+  if (b.current === b.next) throw new HttpError(400, 'New password: choose a different password from the current one.');
+  // Every admin needs an email: it is how they sign in and how they are reached.
+  if (!a.email) throw new HttpError(400, 'Add your email address first.');
+  await query('UPDATE admins SET password_hash = $2, must_change_password = FALSE, password_expires_at = NULL WHERE id = $1', [
+    admin(req).adminId,
+    await bcrypt.hash(b.next, 12),
+  ]);
+  await audit(req, 'admin.password', { type: 'admin', id: admin(req).adminId, regionId: admin(req).regionId });
   res.json({ ok: true });
 });
 
+// ----- admin accounts (super admin only: an admin with no region sees every region) -----
+
+/** How long a temporary password sent on WhatsApp keeps working if it is never replaced. */
+const TEMP_PASSWORD_DAYS = 7;
+
+function requireSuper(req: any) {
+  if (admin(req).regionId) throw new HttpError(403, 'Only the super admin can manage admins.');
+}
+
+const ADMIN_LIST = `SELECT a.id, a.email, a.phone, a.name, a.region_id, r.name AS region_name, a.last_login_at,
+    a.must_change_password, a.password_expires_at
+  FROM admins a LEFT JOIN regions r ON r.id = a.region_id`;
+
+/** A new temporary password: works for TEMP_PASSWORD_DAYS and only opens the account set-up screen. */
+async function issueTempPassword() {
+  const tempPassword = generateTempPassword();
+  return { tempPassword, hash: await bcrypt.hash(tempPassword, 12) };
+}
+
 adminRouter.get('/admins', async (req, res) => {
-  if (admin(req).regionId) throw new HttpError(403, 'Only a national admin can list admins.');
-  res.json(await query('SELECT a.id, a.email, a.name, a.region_id, r.name AS region_name, a.last_login_at FROM admins a LEFT JOIN regions r ON r.id = a.region_id ORDER BY a.id'));
+  requireSuper(req);
+  res.json(await query(`${ADMIN_LIST} ORDER BY a.region_id NULLS FIRST, a.id`));
 });
 
+export const createAdminSchema = z.object({
+  name: nameStr,
+  phone: ghPhone.refine((v) => !!v, 'is required: the sign-in details are sent there'),
+  email: z.string().trim().toLowerCase().email('enter a valid email address').max(200).optional().nullable(),
+  regionId: z.number().int().positive().nullable(),
+});
+
+/** Adds an admin and returns a temporary password for the super admin to send them on WhatsApp. */
 adminRouter.post('/admins', async (req, res) => {
-  if (admin(req).regionId) throw new HttpError(403, 'Only a national admin can add admins.');
-  const b = parse(
-    z.object({ email: z.string().trim().toLowerCase().email(), name: nameStr, password: z.string().min(10).max(200), regionId: z.number().int().positive().nullable() }),
-    req.body,
+  requireSuper(req);
+  const b = parse(createAdminSchema, req.body);
+  const { tempPassword, hash } = await issueTempPassword();
+  let row;
+  try {
+    row = await one(
+      `INSERT INTO admins (email, phone, name, password_hash, region_id, must_change_password, password_expires_at)
+       VALUES ($1,$2,$3,$4,$5,TRUE, now() + interval '${TEMP_PASSWORD_DAYS} days') RETURNING id`,
+      [b.email || null, b.phone, b.name, hash, b.regionId],
+    );
+  } catch (e: any) {
+    if (e?.code === '23505') throw new HttpError(409, 'An admin with that phone number or email already exists.');
+    throw e;
+  }
+  await audit(req, 'admin.create', { type: 'admin', id: row.id, regionId: b.regionId }, { name: b.name, phone: b.phone });
+  res.status(201).json({ ...(await one(`${ADMIN_LIST} WHERE a.id = $1`, [row.id])), tempPassword });
+});
+
+/** Forgotten password or lost message: a new temporary password to send again. */
+adminRouter.post('/admins/:id/reset-password', async (req, res) => {
+  requireSuper(req);
+  const id = intParam(req.params.id);
+  if (id === admin(req).adminId) throw new HttpError(400, 'Change your own password under Your account.');
+  const { tempPassword, hash } = await issueTempPassword();
+  const row = await one(
+    `UPDATE admins SET password_hash = $2, must_change_password = TRUE, password_expires_at = now() + interval '${TEMP_PASSWORD_DAYS} days'
+     WHERE id = $1 RETURNING id, region_id`,
+    [id, hash],
   );
-  const row = await one('INSERT INTO admins (email, name, password_hash, region_id) VALUES ($1,$2,$3,$4) RETURNING id, email, name, region_id', [
-    b.email, b.name, await bcrypt.hash(b.password, 12), b.regionId,
-  ]);
-  await audit(req, 'admin.create', { type: 'admin', id: row.id, regionId: b.regionId }, { email: b.email });
-  res.status(201).json(row);
+  if (!row) throw new HttpError(404, 'Admin not found');
+  await audit(req, 'admin.reset_password', { type: 'admin', id, regionId: row.region_id });
+  res.json({ ...(await one(`${ADMIN_LIST} WHERE a.id = $1`, [id])), tempPassword });
+});
+
+adminRouter.delete('/admins/:id', async (req, res) => {
+  requireSuper(req);
+  const id = intParam(req.params.id);
+  if (id === admin(req).adminId) throw new HttpError(400, 'You cannot remove your own account.');
+  const row = await one('DELETE FROM admins WHERE id = $1 RETURNING id, name, region_id', [id]);
+  if (!row) throw new HttpError(404, 'Admin not found');
+  await audit(req, 'admin.remove', { type: 'admin', id, regionId: row.region_id }, { name: row.name });
+  res.json({ ok: true });
 });
 
 // ----- exports -----

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ClipboardList, CloudOff, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ClipboardList, CloudOff, FileDown, FileSpreadsheet, MapPin, Plus, Search, Trash2 } from 'lucide-react';
+import { api, API_BASE } from '../lib/api';
+import { normalizeGps } from '../lib/format';
 import type { Category, Unit } from '../lib/types';
-import { Alert, Button, Empty, Input, Select, Spinner, Textarea, useConfirm } from './ui';
+import { Alert, Button, Empty, Field, Input, Modal, Select, Spinner, Textarea, useConfirm, useToast } from './ui';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'offline' | 'error';
 
@@ -12,6 +14,13 @@ interface Props {
   storageKey: string;
   save: (units: Unit[]) => Promise<Unit[]>;
   onChange?: (units: Unit[]) => void;
+  /** Where to send an Excel/CSV file to be read (nothing is saved until the rows are added). */
+  importPath?: string;
+}
+
+interface ImportResult {
+  units: { name: string; category: string | null; gpsAddress: string | null }[];
+  notes: string[];
 }
 
 interface Draft {
@@ -37,15 +46,19 @@ const writeDraft = (k: string, d: Draft | null) => {
 };
 
 const same = (a: Unit[], b: Unit[]) =>
-  a.length === b.length && a.every((u, i) => u.name === b[i].name && u.category === b[i].category);
+  a.length === b.length &&
+  a.every((u, i) => u.name === b[i].name && u.category === b[i].category && (u.gpsAddress ?? null) === (b[i].gpsAddress ?? null));
+
+const GPS_HINT = 'Ghana Post GPS addresses look like AK-039-5028.';
 
 /**
  * Editable list of basic units / workplaces. Every change is kept on the phone
  * first and then saved to the server a moment later, so a dropped connection
  * never loses work.
  */
-export function UnitsEditor({ units: initial, categories, editable, storageKey, save, onChange }: Props) {
+export function UnitsEditor({ units: initial, categories, editable, storageKey, save, onChange, importPath }: Props) {
   const confirm = useConfirm();
+  const toast = useToast();
   const [rows, setRows] = useState<Unit[]>(initial);
   const [state, setState] = useState<SaveState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +67,11 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
     return d && !same(d.units, initial) ? d : null;
   });
   const [name, setName] = useState('');
+  const [gps, setGps] = useState('');
+  const [imported, setImported] = useState<ImportResult | null>(null);
+  const [importCategory, setImportCategory] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState(() => {
     try {
       return localStorage.getItem('gnat.lastCategory') || categories[0]?.value || '';
@@ -73,7 +91,7 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
       setState('saving');
       setError(null);
       try {
-        const saved = await save(next.map(({ name, category }) => ({ name, category })));
+        const saved = await save(next.map(({ name, category, gpsAddress }) => ({ name, category, gpsAddress: gpsAddress || null })));
         lastSaved.current = saved;
         writeDraft(storageKey, null);
         setState('saved');
@@ -129,20 +147,31 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
       setError(`“${n}” is already on the list.`);
       return;
     }
+    const g = gps.trim() ? normalizeGps(gps) : null;
+    if (gps.trim() && !g) {
+      setError(GPS_HINT + ' Check it, or leave it blank.');
+      return;
+    }
     try {
       localStorage.setItem('gnat.lastCategory', category);
     } catch {
       /* ignore */
     }
-    update([...rows, { name: n, category }]);
+    update([...rows, { name: n, category, gpsAddress: g }]);
     setName('');
+    setGps('');
     nameRef.current?.focus();
   };
 
   const addBulk = () => {
     const names = bulkText
       .split(/\r?\n/)
-      .map((s) => s.replace(/^[\s\-•*\d.)]+/, '').trim().replace(/\s+/g, ' '))
+      .map((s) =>
+        s
+          .replace(/^[\s\-•*\d.)]+/, '')
+          .trim()
+          .replace(/\s+/g, ' '),
+      )
       .filter((s) => s.length >= 2);
     const seen = new Set(rows.map((r) => r.name.toLowerCase()));
     const fresh: Unit[] = [];
@@ -154,6 +183,39 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
     if (fresh.length) update([...rows, ...fresh]);
     setBulkText('');
     setBulk(false);
+  };
+
+  const readFile = async (f: File | undefined) => {
+    if (fileRef.current) fileRef.current.value = '';
+    if (!f || !importPath) return;
+    if (f.size > 2 * 1024 * 1024) {
+      setError('That file is too large. Keep it under 2 MB.');
+      return;
+    }
+    setImporting(true);
+    setError(null);
+    try {
+      const r = await api.chair.upload<ImportResult>(importPath, f);
+      setImportCategory(category);
+      setImported(r);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const importFresh = useMemo(() => {
+    if (!imported) return [];
+    const seen = new Set(rows.map((r) => r.name.toLowerCase()));
+    return imported.units.filter((u) => !seen.has(u.name.toLowerCase()));
+  }, [imported, rows]);
+
+  const addImported = () => {
+    const next = importFresh.map((u) => ({ name: u.name, category: u.category ?? importCategory, gpsAddress: u.gpsAddress }));
+    if (next.length) update([...rows, ...next]);
+    toast(`${next.length} workplace${next.length === 1 ? '' : 's'} added`);
+    setImported(null);
   };
 
   const filtered = useMemo(() => {
@@ -175,10 +237,23 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
         <Alert tone="warn" title="Unsaved changes found on this phone">
           <p>You have a list from {new Date(pending.at).toLocaleString('en-GB')} that did not reach the server.</p>
           <div className="mt-2 flex gap-2">
-            <Button size="sm" onClick={() => { update(pending.units); setPending(null); }}>
+            <Button
+              size="sm"
+              onClick={() => {
+                update(pending.units);
+                setPending(null);
+              }}
+            >
               Restore it ({pending.units.length})
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { writeDraft(storageKey, null); setPending(null); }}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                writeDraft(storageKey, null);
+                setPending(null);
+              }}
+            >
               Discard
             </Button>
           </div>
@@ -189,39 +264,172 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
         <div className="rounded-xl border border-line bg-surface-2/60 p-3 sm:p-4">
           {!bulk ? (
             <form
-              className="grid gap-2 sm:grid-cols-[1fr_16rem_auto]"
+              className="grid gap-2 sm:grid-cols-[1fr_14rem_10rem_auto]"
               onSubmit={(e) => {
                 e.preventDefault();
                 add();
               }}
             >
-              <Input ref={nameRef} placeholder="Name of school / workplace" value={name} onChange={(e) => { setName(e.target.value); setError(null); }} aria-label="Workplace name" enterKeyHint="done" />
+              <Input
+                ref={nameRef}
+                placeholder="Name of school / workplace"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError(null);
+                }}
+                aria-label="Workplace name"
+                enterKeyHint="next"
+              />
               <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
                 {categories.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
                 ))}
               </Select>
-              <Button type="submit" disabled={name.trim().length < 2}><Plus className="h-4 w-4" aria-hidden />Add</Button>
+              <Input
+                placeholder="GPS address (optional)"
+                value={gps}
+                onChange={(e) => {
+                  setGps(e.target.value.toUpperCase());
+                  setError(null);
+                }}
+                aria-label="Ghana Post GPS address (optional)"
+                title={GPS_HINT}
+                autoCapitalize="characters"
+                spellCheck={false}
+                enterKeyHint="done"
+                className="code-font"
+              />
+              <Button type="submit" disabled={name.trim().length < 2}>
+                <Plus className="h-4 w-4" aria-hidden />
+                Add
+              </Button>
             </form>
           ) : (
             <div className="space-y-2">
-              <Textarea placeholder={'Paste or type one name per line, e.g.\nAdum Presby JHS\nSt. Peter’s Basic School'} value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} aria-label="List of workplaces, one per line" />
+              <Textarea
+                placeholder={'Paste or type one name per line, e.g.\nAdum Presby JHS\nSt. Peter’s Basic School'}
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                rows={6}
+                aria-label="List of workplaces, one per line"
+              />
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={category} onChange={(e) => setCategory(e.target.value)} className="sm:w-72" aria-label="Category for all">
                   {categories.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
                   ))}
                 </Select>
-                <Button onClick={addBulk} disabled={!bulkText.trim()}><Plus className="h-4 w-4" aria-hidden />Add all</Button>
+                <Button onClick={addBulk} disabled={!bulkText.trim()}>
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Add all
+                </Button>
               </div>
             </div>
           )}
-          <button className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand" onClick={() => setBulk((b) => !b)}>
-            {bulk ? <ArrowLeft className="h-4 w-4" aria-hidden /> : <ClipboardList className="h-4 w-4" aria-hidden />}
-            {bulk ? 'Add one at a time' : 'Have a long list? Paste many at once'}
-          </button>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+            <button
+              className="inline-flex min-h-8 items-center gap-1.5 text-sm font-semibold text-brand"
+              onClick={() => setBulk((b) => !b)}
+            >
+              {bulk ? <ArrowLeft className="h-4 w-4" aria-hidden /> : <ClipboardList className="h-4 w-4" aria-hidden />}
+              {bulk ? 'Add one at a time' : 'Have a long list? Paste many at once'}
+            </button>
+            {importPath && (
+              <>
+                <button
+                  className="inline-flex min-h-8 items-center gap-1.5 text-sm font-semibold text-brand disabled:opacity-50"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={importing}
+                >
+                  {importing ? <Spinner className="h-4 w-4" /> : <FileSpreadsheet className="h-4 w-4" aria-hidden />}
+                  Import from Excel
+                </button>
+                <a
+                  href={`${API_BASE}/units-template.xlsx`}
+                  className="inline-flex min-h-8 items-center gap-1.5 text-sm text-ink-2 hover:text-brand"
+                  download
+                >
+                  <FileDown className="h-4 w-4" aria-hidden />
+                  Excel template
+                </a>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                  className="hidden"
+                  aria-label="Excel or CSV file of workplaces"
+                  onChange={(e) => readFile(e.target.files?.[0])}
+                />
+              </>
+            )}
+          </div>
         </div>
       )}
+
+      <Modal
+        open={!!imported}
+        onClose={() => setImported(null)}
+        title="Import workplaces"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setImported(null)}>
+              Cancel
+            </Button>
+            <Button onClick={addImported} disabled={!importFresh.length}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Add {importFresh.length} workplace{importFresh.length === 1 ? '' : 's'}
+            </Button>
+          </>
+        }
+      >
+        {imported && (
+          <div className="space-y-3 text-sm">
+            <p className="text-ink-2">
+              Found <b className="text-ink">{imported.units.length}</b> workplace{imported.units.length === 1 ? '' : 's'}.
+              {imported.units.length > importFresh.length &&
+                ` ${imported.units.length - importFresh.length} already on your list will be skipped.`}{' '}
+              Nothing is saved until you add them, and you can still edit them afterwards.
+            </p>
+            {imported.notes.map((n) => (
+              <Alert key={n} tone="warn">
+                {n}
+              </Alert>
+            ))}
+            {importFresh.some((u) => !u.category) && (
+              <Field label={`Category for the ${importFresh.filter((u) => !u.category).length} without one`} htmlFor="import-category">
+                <Select id="import-category" value={importCategory} onChange={(e) => setImportCategory(e.target.value)}>
+                  {categories.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+            <ul className="max-h-60 divide-y divide-line overflow-y-auto rounded-lg border border-line">
+              {importFresh.map((u) => (
+                <li key={u.name} className="flex flex-wrap justify-between gap-x-3 px-3 py-2">
+                  <span className="font-medium text-ink">{u.name}</span>
+                  <span className="text-ink-3">
+                    {u.category ?? <i>{importCategory}</i>}
+                    {u.gpsAddress && (
+                      <>
+                        {' '}
+                        · <span className="code-font">{u.gpsAddress}</span>
+                      </>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Modal>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
         <p className="font-semibold text-ink">
@@ -234,7 +442,13 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
       {rows.length > 12 && (
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
-          <Input className="pl-9" placeholder="Search this list…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workplaces" />
+          <Input
+            className="pl-9"
+            placeholder="Search this list…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Search workplaces"
+          />
         </div>
       )}
 
@@ -269,9 +483,10 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
                       if (!same(next, lastSaved.current)) update(next);
                     }}
                   />
-                  <div className="flex gap-2">
+                  {/* Phone: category on its own line, then GPS + remove. Wider screens: one row. */}
+                  <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                     <Select
-                      className="h-10 sm:w-64"
+                      className="h-10 basis-full sm:w-56 sm:basis-auto"
                       value={r.category}
                       aria-label={`Category of ${r.name}`}
                       onChange={(e) => {
@@ -281,15 +496,53 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
                       }}
                     >
                       {categories.map((c) => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
                       ))}
                     </Select>
+                    {/* Wrapped: Input is w-full, so the width lives on the box. */}
+                    <div className="min-w-0 flex-1 sm:w-36 sm:flex-none">
+                      <Input
+                        className="code-font h-10"
+                        placeholder="GPS address"
+                        title={GPS_HINT}
+                        value={r.gpsAddress ?? ''}
+                        aria-label={`GPS address of ${r.name}`}
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        onChange={(e) => {
+                          const next = rows.slice();
+                          next[i] = { ...r, gpsAddress: e.target.value.toUpperCase() };
+                          setRows(next);
+                        }}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const g = v ? normalizeGps(v) : null;
+                          const next = rows.slice();
+                          if (v && !g) {
+                            next[i] = { ...r, gpsAddress: lastSaved.current[i]?.gpsAddress ?? null };
+                            setError(`${GPS_HINT} “${v}” is not one.`);
+                            setRows(next);
+                            return;
+                          }
+                          next[i] = { ...r, gpsAddress: g };
+                          if (!same(next, lastSaved.current)) update(next);
+                          else setRows(next);
+                        }}
+                      />
+                    </div>
                     <Button
                       variant="danger"
                       className="h-10 shrink-0"
                       aria-label={`Remove ${r.name}`}
                       onClick={async () => {
-                        const { ok } = await confirm({ title: 'Remove workplace?', body: `“${r.name}” will be removed from this local.`, confirm: 'Remove', danger: true });
+                        const { ok } = await confirm({
+                          title: 'Remove workplace?',
+                          body: `“${r.name}” will be removed from this local.`,
+                          confirm: 'Remove',
+                          danger: true,
+                        });
                         if (ok) update(rows.filter((_, j) => j !== i));
                       }}
                     >
@@ -300,7 +553,10 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
               ) : (
                 <>
                   <span className="flex-1 font-medium text-ink">{r.name}</span>
-                  <span className="text-sm text-ink-3">{catLabel(r.category)}</span>
+                  <span className="text-sm text-ink-3">
+                    {catLabel(r.category)}
+                    {r.gpsAddress && <GpsTag gps={r.gpsAddress} />}
+                  </span>
                 </>
               )}
             </li>
@@ -323,6 +579,16 @@ export function UnitsEditor({ units: initial, categories, editable, storageKey, 
   );
 }
 
+/** A workplace's GPS address, shown after its category. */
+export function GpsTag({ gps }: { gps: string }) {
+  return (
+    <span className="ml-1.5 inline-flex items-center gap-0.5 whitespace-nowrap">
+      <MapPin className="h-3.5 w-3.5" aria-hidden />
+      <span className="code-font">{gps}</span>
+    </span>
+  );
+}
+
 function SaveIndicator({ state }: { state: SaveState }) {
   if (state === 'saving')
     return (
@@ -342,6 +608,11 @@ function SaveIndicator({ state }: { state: SaveState }) {
         <CloudOff className="h-4 w-4" aria-hidden /> Offline: kept on this phone
       </span>
     );
-  if (state === 'error') return <span className="text-danger" role="status">! Not saved</span>;
+  if (state === 'error')
+    return (
+      <span className="text-danger" role="status">
+        ! Not saved
+      </span>
+    );
   return <span className="text-ink-3">Changes save automatically</span>;
 }

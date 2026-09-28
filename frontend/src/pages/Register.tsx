@@ -59,7 +59,11 @@ export default function Register() {
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <CopyButton text={done.code} label="Copy code" size="md" />
-                <WhatsAppButton size="md" label="Send to my WhatsApp" href={whatsappLink(districtInviteMessage(done.name, done.code), form.chairPhone.replace(/^0/, '233'))} />
+                <WhatsAppButton
+                  size="md"
+                  label="Send to my WhatsApp"
+                  href={whatsappLink(districtInviteMessage(done.name, done.code), form.chairPhone.replace(/^0/, '233'))}
+                />
               </div>
               <Button
                 size="lg"
@@ -80,9 +84,15 @@ export default function Register() {
               <form onSubmit={submit} className="space-y-4">
                 {meta.regions.length > 1 ? (
                   <Field label="GNAT Region" htmlFor="region">
-                    <Select id="region" value={form.regionId} onChange={(e) => setForm((f) => ({ ...f, regionId: Number(e.target.value) }))}>
+                    <Select
+                      id="region"
+                      value={form.regionId}
+                      onChange={(e) => setForm((f) => ({ ...f, regionId: Number(e.target.value) }))}
+                    >
                       {meta.regions.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
                       ))}
                     </Select>
                   </Field>
@@ -92,18 +102,63 @@ export default function Register() {
                   </p>
                 )}
                 {region?.requiresKey && (
-                  <TextField label="Registration key" hint="The Regional Secretary shares this in the chairmen's group." value={form.registrationKey} onChange={set('registrationKey')} required autoCapitalize="none" />
+                  <TextField
+                    label="Registration key"
+                    hint="The Regional Secretary shares this in the chairmen's group."
+                    value={form.registrationKey}
+                    onChange={set('registrationKey')}
+                    required
+                    autoCapitalize="none"
+                  />
                 )}
-                <TextField label="GNAT District name" placeholder="e.g. Kumasi Metro" value={form.districtName} onChange={set('districtName')} required minLength={2} />
-                <TextField label="Your full name (District Chairman)" value={form.chairName} onChange={set('chairName')} required autoComplete="name" />
-                <TextField label="Your phone number" type="tel" inputMode="tel" placeholder="024 123 4567" value={form.chairPhone} onChange={set('chairPhone')} required autoComplete="tel" />
-                <TextField label="Name / group (optional)" hint="e.g. District Executive Committee" value={form.chairGroup} onChange={set('chairGroup')} />
+                <TextField
+                  label="GNAT District name"
+                  placeholder="e.g. Kumasi Metro"
+                  value={form.districtName}
+                  onChange={set('districtName')}
+                  required
+                  minLength={2}
+                />
+                <TextField
+                  label="Your full name (District Chairman)"
+                  value={form.chairName}
+                  onChange={set('chairName')}
+                  required
+                  autoComplete="name"
+                />
+                <TextField
+                  label="Your phone number"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="024 123 4567"
+                  value={form.chairPhone}
+                  onChange={set('chairPhone')}
+                  required
+                  autoComplete="tel"
+                />
+                <TextField
+                  label="Name / group (optional)"
+                  hint="e.g. District Executive Committee"
+                  value={form.chairGroup}
+                  onChange={set('chairGroup')}
+                />
+                <p className="rounded-lg bg-surface-2 px-3 py-2.5 text-xs text-ink-2">
+                  Your name and phone number are used only to organise the GNAT mapping exercise. The Regional Secretary sees them, and they
+                  are never sold or used for advertising. Read the{' '}
+                  <Link to="/privacy" className="font-semibold text-brand">
+                    privacy notice
+                  </Link>
+                  .
+                </p>
                 {error && <Alert tone="error">{error}</Alert>}
                 <Button type="submit" size="lg" className="w-full" busy={busy}>
                   Register and get my code
                 </Button>
                 <p className="text-center text-sm text-ink-3">
-                  Already registered? <Link to="/" className="font-semibold text-brand">Enter your code</Link>
+                  Already registered?{' '}
+                  <Link to="/" className="font-semibold text-brand">
+                    Enter your code
+                  </Link>
                 </p>
               </form>
             </Card>

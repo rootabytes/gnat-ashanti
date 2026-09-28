@@ -7,7 +7,10 @@ let inflight: Promise<Meta> | null = null;
 
 export function loadMeta(): Promise<Meta> {
   if (cache) return Promise.resolve(cache);
-  inflight ??= api.pub.get<Meta>('/meta').then((m) => (cache = m)).finally(() => (inflight = null));
+  inflight ??= api.pub
+    .get<Meta>('/meta')
+    .then((m) => (cache = m))
+    .finally(() => (inflight = null));
   return inflight;
 }
 

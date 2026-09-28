@@ -15,6 +15,8 @@ const STATUS_LABEL: Record<string, string> = { draft: 'In progress', submitted: 
 const fmtDate = (d: Date | string | null) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 const stamp = () => new Date().toISOString().slice(0, 10);
 const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '_');
+// Act 843 data sharing rule: every export says where it may go.
+const CONFIDENTIAL = 'Confidential: GNAT internal. Do not share outside GNAT.';
 
 function styleHeader(ws: ExcelJS.Worksheet) {
   const h = ws.getRow(1);
@@ -23,18 +25,26 @@ function styleHeader(ws: ExcelJS.Worksheet) {
   h.alignment = { vertical: 'middle' };
   ws.views = [{ state: 'frozen', ySplit: 1 }];
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columnCount } };
+  printFooter(ws);
+}
+
+function printFooter(ws: ExcelJS.Worksheet) {
+  ws.headerFooter = { oddFooter: `&L${CONFIDENTIAL}&RPage &P of &N` };
 }
 
 export async function sendXlsx(res: Response, regionId: number, regionName: string) {
   const [data, ov] = await Promise.all([flatRows(regionId), overview(regionId)]);
   const wb = new ExcelJS.Workbook();
   wb.creator = 'GNAT Mapping';
+  wb.company = 'Rootabytes';
   wb.created = new Date();
 
   const sum = wb.addWorksheet('Summary');
   sum.columns = [{ width: 42 }, { width: 16 }];
   sum.addRow([`GNAT ${regionName} Region: Mapping Summary`]).font = { bold: true, size: 14, color: { argb: `FF${SKY}` } };
   sum.addRow([`Generated ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' })}`]);
+  sum.addRow([CONFIDENTIAL]).font = { bold: true, color: { argb: `FF${RED}` } };
+  printFooter(sum);
   sum.addRow([]);
   const kv: [string, number | string][] = [
     ['GNAT districts registered', ov.totals.districts],
@@ -98,6 +108,7 @@ export async function sendXlsx(res: Response, regionId: number, regionName: stri
     { header: 'GNAT Local', key: 'local', width: 28 },
     { header: 'Basic Unit / Workplace', key: 'name', width: 42 },
     { header: 'Category', key: 'category', width: 40 },
+    { header: 'GPS Address', key: 'gps_address', width: 16 },
   ];
   data.units.forEach((u) =>
     us.addRow({ ...u, region: regionName, category: CATEGORY_LABELS[u.category as WorkplaceCategory] ?? u.category }),
@@ -134,14 +145,49 @@ export async function sendCsv(res: Response, regionId: number, regionName: strin
   let header: string[];
   let rows: unknown[][];
   if (level === 'districts') {
-    header = ['GNAT District', 'Political Admin. District(s)', 'Chairman', 'Phone', 'Name / Group', 'Locals', 'Workplaces', 'Status', 'Submitted'];
-    rows = data.districts.map((d) => [d.name, d.political, d.chair_name, d.chair_phone, d.chair_group, d.locals, d.units, STATUS_LABEL[d.status], fmtDate(d.submitted_at)]);
+    header = [
+      'GNAT District',
+      'Political Admin. District(s)',
+      'Chairman',
+      'Phone',
+      'Name / Group',
+      'Locals',
+      'Workplaces',
+      'Status',
+      'Submitted',
+    ];
+    rows = data.districts.map((d) => [
+      d.name,
+      d.political,
+      d.chair_name,
+      d.chair_phone,
+      d.chair_group,
+      d.locals,
+      d.units,
+      STATUS_LABEL[d.status],
+      fmtDate(d.submitted_at),
+    ]);
   } else if (level === 'locals') {
     header = ['GNAT District', 'GNAT Local', 'Chairman', 'Phone', 'Workplaces', 'Status', 'Submitted'];
-    rows = data.locals.map((l) => [l.district, l.name, l.chair_name, l.chair_phone, l.units, STATUS_LABEL[l.status], fmtDate(l.submitted_at)]);
+    rows = data.locals.map((l) => [
+      l.district,
+      l.name,
+      l.chair_name,
+      l.chair_phone,
+      l.units,
+      STATUS_LABEL[l.status],
+      fmtDate(l.submitted_at),
+    ]);
   } else {
-    header = ['GNAT Region', 'GNAT District', 'GNAT Local', 'Basic Unit / Workplace', 'Category'];
-    rows = data.units.map((u) => [regionName, u.district, u.local, u.name, CATEGORY_LABELS[u.category as WorkplaceCategory] ?? u.category]);
+    header = ['GNAT Region', 'GNAT District', 'GNAT Local', 'Basic Unit / Workplace', 'Category', 'GPS Address'];
+    rows = data.units.map((u) => [
+      regionName,
+      u.district,
+      u.local,
+      u.name,
+      CATEGORY_LABELS[u.category as WorkplaceCategory] ?? u.category,
+      u.gps_address,
+    ]);
     level = 'units';
   }
   const body = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
@@ -169,12 +215,28 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
 
   const logo = path.join(__dirname, '..', 'assets', 'gnat-logo.png');
   if (fs.existsSync(logo)) doc.image(logo, left, 36, { width: 58 });
-  doc.fillColor(sky).font('Inter-Bold').fontSize(18).text('Ghana National Association of Teachers', left + 72, 44);
-  doc.fontSize(13).fillColor(red).text(`${regionName} Region: Structure Mapping Report`, left + 72, 68);
-  doc.font('Inter').fontSize(9).fillColor(grey)
+  doc
+    .fillColor(sky)
+    .font('Inter-Bold')
+    .fontSize(18)
+    .text('Ghana National Association of Teachers', left + 72, 44);
+  doc
+    .fontSize(13)
+    .fillColor(red)
+    .text(`${regionName} Region: Structure Mapping Report`, left + 72, 68);
+  doc
+    .font('Inter')
+    .fontSize(9)
+    .fillColor(grey)
     .text(`Generated ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' })}`, left + 72, 88);
-  doc.rect(left, 111, width * 0.75, 3).fillColor('#0EA5E9').fill();
-  doc.rect(left + width * 0.75, 111, width * 0.25, 3).fillColor(red).fill();
+  doc
+    .rect(left, 111, width * 0.75, 3)
+    .fillColor('#0EA5E9')
+    .fill();
+  doc
+    .rect(left + width * 0.75, 111, width * 0.25, 3)
+    .fillColor(red)
+    .fill();
   doc.y = 124;
 
   // KPI tiles
@@ -189,8 +251,16 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   tiles.forEach(([label, value], i) => {
     const x = left + i * (tw + 6);
     doc.roundedRect(x, ty, tw, 54, 4).fillColor(`#${SKY_LIGHT}`).fill();
-    doc.fillColor(sky).font('Inter-Bold').fontSize(20).text(value, x + 10, ty + 8, { width: tw - 20 });
-    doc.fillColor(grey).font('Inter').fontSize(8.5).text(label, x + 10, ty + 34, { width: tw - 20 });
+    doc
+      .fillColor(sky)
+      .font('Inter-Bold')
+      .fontSize(20)
+      .text(value, x + 10, ty + 8, { width: tw - 20 });
+    doc
+      .fillColor(grey)
+      .font('Inter')
+      .fontSize(8.5)
+      .text(label, x + 10, ty + 34, { width: tw - 20 });
   });
   doc.y = ty + 70;
 
@@ -201,9 +271,15 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   };
 
   section('Submission progress');
-  const prog: [string, Record<string, number>][] = [['Districts', ov.districtStatus], ['Locals', ov.localStatus]];
+  const prog: [string, Record<string, number>][] = [
+    ['Districts', ov.districtStatus],
+    ['Locals', ov.localStatus],
+  ];
   prog.forEach(([label, s]) => {
-    doc.font('Inter').fontSize(9.5).fillColor('#222')
+    doc
+      .font('Inter')
+      .fontSize(9.5)
+      .fillColor('#222')
       .text(`${label}: ${s.approved} approved, ${s.submitted} submitted, ${s.returned} returned, ${s.draft} in progress`, left);
   });
 
@@ -213,9 +289,17 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   const barMax = width - labelW - 40;
   for (const c of ov.unitsByCategory) {
     const y = doc.y;
-    doc.font('Inter').fontSize(8.5).fillColor('#222').text(c.category, left, y, { width: labelW - 6, lineBreak: false });
+    doc
+      .font('Inter')
+      .fontSize(8.5)
+      .fillColor('#222')
+      .text(c.category, left, y, { width: labelW - 6, lineBreak: false });
     const w = (c.count / maxCat) * barMax;
-    if (w > 0) doc.rect(left + labelW, y + 1, w, 8).fillColor(sky).fill();
+    if (w > 0)
+      doc
+        .rect(left + labelW, y + 1, w, 8)
+        .fillColor(sky)
+        .fill();
     doc.fillColor('#222').text(String(c.count), left + labelW + w + 4, y, { lineBreak: false });
     doc.y = y + 13;
   }
@@ -233,7 +317,11 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
     doc.rect(left, y, width, 16).fillColor(sky).fill();
     let x = left;
     cols.forEach((c) => {
-      doc.fillColor('#fff').font('Inter-Bold').fontSize(8.5).text(c.h, x + 4, y + 4, { width: c.w - 8, lineBreak: false });
+      doc
+        .fillColor('#fff')
+        .font('Inter-Bold')
+        .fontSize(8.5)
+        .text(c.h, x + 4, y + 4, { width: c.w - 8, lineBreak: false });
       x += c.w;
     });
     doc.y = y + 18;
@@ -260,14 +348,19 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
 
   const gaps = ov.coverage.filter((c) => !c.gnatDistricts.length);
   section(`Political districts not yet covered (${gaps.length})`);
-  doc.font('Inter').fontSize(9).fillColor('#222')
-    .text(gaps.length ? gaps.map((g) => `${g.name} (${g.kind})`).join(', ') : 'All political districts are covered.', left, doc.y, { width });
+  doc
+    .font('Inter')
+    .fontSize(9)
+    .fillColor('#222')
+    .text(gaps.length ? gaps.map((g) => `${g.name} (${g.kind})`).join(', ') : 'All political districts are covered.', left, doc.y, {
+      width,
+    });
 
   // Appendix: full structure
   doc.addPage();
   doc.fillColor(sky).font('Inter-Bold').fontSize(14).text('Appendix: Full structure', left);
   doc.moveDown(0.5);
-  const unitsByLocal = new Map<string, { name: string; category: string }[]>();
+  const unitsByLocal = new Map<string, { name: string; category: string; gps_address: string | null }[]>();
   data.units.forEach((u) => {
     const k = `${u.district}\u0000${u.local}`;
     if (!unitsByLocal.has(k)) unitsByLocal.set(k, []);
@@ -275,18 +368,38 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
   });
   for (const d of data.districts) {
     if (doc.y > doc.page.height - 120) doc.addPage();
-    doc.moveDown(0.4).fillColor(red).font('Inter-Bold').fontSize(11).text(`${d.name}  `, left, doc.y, { continued: true })
-      .fillColor(grey).font('Inter').fontSize(8.5).text(`${STATUS_LABEL[d.status]} · Chairman: ${d.chair_name ?? '-'}`);
+    doc
+      .moveDown(0.4)
+      .fillColor(red)
+      .font('Inter-Bold')
+      .fontSize(11)
+      .text(`${d.name}  `, left, doc.y, { continued: true })
+      .fillColor(grey)
+      .font('Inter')
+      .fontSize(8.5)
+      .text(`${STATUS_LABEL[d.status]} · Chairman: ${d.chair_name ?? '-'}`);
     if (d.political) doc.fillColor(grey).fontSize(8.5).text(`Covers: ${d.political}`, left, doc.y, { width });
     for (const l of data.locals.filter((x) => x.district === d.name)) {
       if (doc.y > doc.page.height - 80) doc.addPage();
-      doc.moveDown(0.2).fillColor(sky).font('Inter-Bold').fontSize(9.5).text(`${l.name}`, left + 12, doc.y, { continued: true })
-        .fillColor(grey).font('Inter').fontSize(8).text(`   ${STATUS_LABEL[l.status]} · ${l.units} workplace(s)`);
+      doc
+        .moveDown(0.2)
+        .fillColor(sky)
+        .font('Inter-Bold')
+        .fontSize(9.5)
+        .text(`${l.name}`, left + 12, doc.y, { continued: true })
+        .fillColor(grey)
+        .font('Inter')
+        .fontSize(8)
+        .text(`   ${STATUS_LABEL[l.status]} · ${l.units} workplace(s)`);
       const us = unitsByLocal.get(`${d.name}\u0000${l.name}`) ?? [];
       doc.fillColor('#222').font('Inter').fontSize(8.5);
       for (const u of us) {
         if (doc.y > doc.page.height - 60) doc.addPage();
-        doc.text(`• ${u.name}  `, left + 24, doc.y, { continued: true, width: width - 24 }).fillColor(grey).text(`(${u.category})`).fillColor('#222');
+        doc
+          .text(`• ${u.name}  `, left + 24, doc.y, { continued: true, width: width - 24 })
+          .fillColor(grey)
+          .text(`(${u.category}${u.gps_address ? ` · ${u.gps_address}` : ''})`)
+          .fillColor('#222');
       }
     }
   }
@@ -296,8 +409,16 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
     doc.switchToPage(i);
     const bottom = doc.page.margins.bottom;
     doc.page.margins.bottom = 0;
-    doc.font('Inter').fontSize(7.5).fillColor(grey)
-      .text(`GNAT ${regionName} · Mapping Report · Page ${i + 1} of ${range.count}`, left, doc.page.height - 28, { width, align: 'center' });
+    doc
+      .font('Inter')
+      .fontSize(7.5)
+      .fillColor(grey)
+      .text(
+        `Confidential: GNAT internal  ·  GNAT ${regionName} Mapping Report  ·  Page ${i + 1} of ${range.count}  ·  Built by Rootabytes`,
+        left,
+        doc.page.height - 28,
+        { width, align: 'center' },
+      );
     doc.page.margins.bottom = bottom;
   }
   doc.end();

@@ -82,10 +82,25 @@ export default function Overview() {
       <PageTitle title={`${region.name} Region overview`} sub="Live progress of the GNAT mapping exercise. Updates every minute." />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Building2} label="GNAT districts" value={t.districts} sub={`${data.districtStatus.submitted + data.districtStatus.approved} submitted`} />
-        <StatTile icon={Landmark} label="GNAT locals" value={t.locals} sub={`${data.localStatus.submitted + data.localStatus.approved} submitted`} />
+        <StatTile
+          icon={Building2}
+          label="GNAT districts"
+          value={t.districts}
+          sub={`${data.districtStatus.submitted + data.districtStatus.approved} submitted`}
+        />
+        <StatTile
+          icon={Landmark}
+          label="GNAT locals"
+          value={t.locals}
+          sub={`${data.localStatus.submitted + data.localStatus.approved} submitted`}
+        />
         <StatTile icon={School} label="Workplaces" value={t.units} sub="basic units & institutions" />
-        <StatTile icon={MapPinned} label="Political districts covered" value={`${t.politicalCovered}/${t.politicalDistricts}`} sub={uncovered.length ? `${uncovered.length} not yet covered` : 'All covered'} />
+        <StatTile
+          icon={MapPinned}
+          label="Political districts covered"
+          value={`${t.politicalCovered}/${t.politicalDistricts}`}
+          sub={uncovered.length ? `${uncovered.length} not yet covered` : 'All covered'}
+        />
       </div>
 
       <Card title="Submission progress">
@@ -118,7 +133,10 @@ export default function Overview() {
       <CoverageCard coverage={data.coverage} />
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Card title="Possible duplicate workplaces" subtitle="Same name listed under more than one local. Check whether it's the same place.">
+        <Card
+          title="Possible duplicate workplaces"
+          subtitle="Same name listed under more than one local. Check whether it's the same place."
+        >
           {dups.length ? (
             <ul className="space-y-3 text-sm">
               {dups.slice(0, 30).map((d) => (
@@ -127,8 +145,11 @@ export default function Overview() {
                   <ul className="mt-0.5 text-ink-2">
                     {d.entries.map((e, i) => (
                       <li key={i}>
-                        • <Link className="text-brand underline" to={`/admin/districts/${e.districtId}`}>{e.district}</Link> › {e.local}{' '}
-                        <span className="text-ink-3">({e.category})</span>
+                        •{' '}
+                        <Link className="text-brand underline" to={`/admin/districts/${e.districtId}`}>
+                          {e.district}
+                        </Link>{' '}
+                        › {e.local} <span className="text-ink-3">({e.category})</span>
                       </li>
                     ))}
                   </ul>
@@ -140,12 +161,28 @@ export default function Overview() {
           )}
         </Card>
 
-        <Card title="Recent activity" action={<Link to="/admin/activity" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">All activity<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
+        <Card
+          title="Recent activity"
+          action={
+            <Link to="/admin/activity" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+              All activity
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          }
+        >
           <ActivityList rows={data.recent.slice(0, 12)} />
         </Card>
       </div>
 
-      <Card title="District tracker" action={<Link to="/admin/districts" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">Open tracker<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
+      <Card
+        title="District tracker"
+        action={
+          <Link to="/admin/districts" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+            Open tracker
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[36rem] text-sm">
             <thead>
@@ -161,17 +198,27 @@ export default function Overview() {
               {data.perDistrict.map((d) => (
                 <tr key={d.id} className="border-b border-line/60">
                   <td className="py-2 pr-3">
-                    <Link to={`/admin/districts/${d.id}`} className="font-semibold text-brand hover:underline">{d.name}</Link>
+                    <Link to={`/admin/districts/${d.id}`} className="font-semibold text-brand hover:underline">
+                      {d.name}
+                    </Link>
                   </td>
-                  <td className="py-2 pr-3"><StatusBadge status={d.status} /></td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{d.localsDone}/{d.locals}</td>
+                  <td className="py-2 pr-3">
+                    <StatusBadge status={d.status} />
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular-nums">
+                    {d.localsDone}/{d.locals}
+                  </td>
                   <td className="py-2 pr-3 text-right tabular-nums">{d.units}</td>
                   <td className="py-2 text-ink-3">{timeAgo(d.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {!data.perDistrict.length && <p className="py-6 text-center text-sm text-ink-3">No districts have registered yet. Share the registration link from Settings.</p>}
+          {!data.perDistrict.length && (
+            <p className="py-6 text-center text-sm text-ink-3">
+              No districts have registered yet. Share the registration link from Settings.
+            </p>
+          )}
         </div>
       </Card>
     </div>
@@ -188,19 +235,34 @@ function CoverageCard({ coverage }: { coverage: OverviewData['coverage'] }) {
       subtitle={`${covered} of ${coverage.length} political administrative districts are mapped to a GNAT district`}
       action={
         <label className="no-print flex items-center gap-2 text-sm text-ink-2">
-          <input type="checkbox" className="h-4 w-4 accent-[var(--brand)]" checked={onlyGaps} onChange={(e) => setOnlyGaps(e.target.checked)} />
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-[var(--brand)]"
+            checked={onlyGaps}
+            onChange={(e) => setOnlyGaps(e.target.checked)}
+          />
           Only not covered
         </label>
       }
     >
-      <div className="mb-4 h-2 overflow-hidden rounded-full bg-surface-2" role="img" aria-label={`${covered} of ${coverage.length} covered`}>
-        <div className="h-full rounded-full" style={{ width: `${coverage.length ? (covered / coverage.length) * 100 : 0}%`, background: 'var(--st-approved)' }} />
+      <div
+        className="mb-4 h-2 overflow-hidden rounded-full bg-surface-2"
+        role="img"
+        aria-label={`${covered} of ${coverage.length} covered`}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${coverage.length ? (covered / coverage.length) * 100 : 0}%`, background: 'var(--st-approved)' }}
+        />
       </div>
       <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((c) => {
           const ok = c.gnatDistricts.length > 0;
           return (
-            <li key={c.id} className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-sm ${ok ? 'bg-[var(--st-approved-bg)]' : 'border border-dashed border-line'}`}>
+            <li
+              key={c.id}
+              className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-sm ${ok ? 'bg-[var(--st-approved-bg)]' : 'border border-dashed border-line'}`}
+            >
               {ok ? (
                 <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--st-approved)' }} aria-hidden />
               ) : (
@@ -257,7 +319,15 @@ export function ActivityList({ rows }: { rows: AuditRow[] }) {
   return (
     <ul className="space-y-2 text-sm">
       {rows.map((r) => {
-        const who = r.actor_label ?? (r.actor_type === 'district' ? 'District chairman' : r.actor_type === 'local' ? 'Local chairman' : r.actor_type === 'admin' ? 'Admin' : 'Someone');
+        const who =
+          r.actor_label ??
+          (r.actor_type === 'district'
+            ? 'District chairman'
+            : r.actor_type === 'local'
+              ? 'Local chairman'
+              : r.actor_type === 'admin'
+                ? 'Admin'
+                : 'Someone');
         const name = r.entity_name ?? r.detail?.name ?? '';
         return (
           <li key={r.id} className="flex justify-between gap-3">

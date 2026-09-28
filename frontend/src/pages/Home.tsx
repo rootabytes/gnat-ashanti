@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyRound, LayoutDashboard, UserPlus } from 'lucide-react';
+import { FlaskConical, KeyRound, LayoutDashboard, UserPlus } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BrandBar, Footer } from '../components/Brand';
 import { Alert, Button, Card, TextField } from '../components/ui';
 import { api, session } from '../lib/api';
+import { useMeta } from '../lib/useMeta';
 
 export default function Home() {
   const nav = useNavigate();
@@ -12,6 +13,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const existing = session.chair();
+  const { meta } = useMeta();
   const tried = useRef(false);
 
   async function signIn(c: string) {
@@ -42,17 +44,37 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh">
-      <BrandBar right={<Link to="/admin" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand"><LayoutDashboard className="h-4 w-4" aria-hidden />Admin</Link>} />
+      <BrandBar
+        right={
+          <Link to="/admin" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand">
+            <LayoutDashboard className="h-4 w-4" aria-hidden />
+            Admin
+          </Link>
+        }
+      />
       <main className="mx-auto max-w-lg px-4 pt-8">
         <div className="text-center">
-          <img src="/gnat-logo.png" alt="GNAT Ashanti logo" className="mx-auto h-28 w-28 object-contain" />
+          <img src="/gnat-logo.png" alt="Ghana National Association of Teachers logo" className="mx-auto h-28 w-28 object-contain" />
           <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
             GNAT <span className="text-accent">Structure</span> Mapping
           </h1>
-          <p className="mt-2 text-ink-2">
-            Map GNAT districts, locals and basic units (workplaces) for your region.
-          </p>
+          <p className="mt-2 text-ink-2">Map GNAT districts, locals and basic units (workplaces) for your region.</p>
         </div>
+
+        {meta?.demo && (
+          <Link
+            to="/demo"
+            className="mt-6 flex items-center gap-3 rounded-xl border-2 border-dashed border-brand bg-brand-soft p-4 hover:bg-surface-2"
+          >
+            <FlaskConical className="h-6 w-6 shrink-0 text-brand" aria-hidden />
+            <span>
+              <span className="block font-bold text-ink">Testing the system?</span>
+              <span className="block text-sm text-ink-2">
+                Open the demo page to sign in as the Regional Secretary, a District Chairman or a Local Chairman with one tap.
+              </span>
+            </span>
+          </Link>
+        )}
 
         {existing && (
           <div className="mt-6">
@@ -61,7 +83,14 @@ export default function Home() {
                 <Button size="sm" onClick={() => nav(existing.role === 'district' ? '/district' : '/local')}>
                   Continue
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { session.setChair(null); nav(0); }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    session.setChair(null);
+                    nav(0);
+                  }}
+                >
                   Sign out
                 </Button>
               </div>
@@ -69,7 +98,16 @@ export default function Home() {
           </div>
         )}
 
-        <Card className="mt-6" title={<span className="inline-flex items-center gap-2"><KeyRound className="h-5 w-5 text-brand" aria-hidden />Enter your access code</span>} subtitle="The code the Regional Secretary or your District Chairman sent you.">
+        <Card
+          className="mt-6"
+          title={
+            <span className="inline-flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-brand" aria-hidden />
+              Enter your access code
+            </span>
+          }
+          subtitle="The code the Regional Secretary or your District Chairman sent you."
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -91,6 +129,13 @@ export default function Home() {
             <Button type="submit" size="lg" className="w-full" busy={busy} disabled={!code.trim()}>
               Continue
             </Button>
+            <p className="text-center text-xs text-ink-3">
+              How we use the names and phone numbers you enter:{' '}
+              <Link to="/privacy" className="font-semibold text-brand">
+                privacy notice
+              </Link>
+              .
+            </p>
           </form>
         </Card>
 
@@ -100,7 +145,10 @@ export default function Home() {
               <p className="font-semibold text-ink">District Chairman without a code?</p>
               <p className="text-sm text-ink-3">Register your GNAT district to get one.</p>
             </div>
-            <Link to="/register" className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-4 font-semibold text-brand hover:bg-surface-2">
+            <Link
+              to="/register"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-4 font-semibold text-brand hover:bg-surface-2"
+            >
               <UserPlus className="h-4 w-4" aria-hidden />
               Register district
             </Link>
@@ -110,9 +158,15 @@ export default function Home() {
         <div className="mt-6 rounded-xl bg-brand-soft p-4 text-sm text-ink-2">
           <p className="font-semibold text-ink">How it works</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5">
-            <li><b>District Chairman</b>: confirms the political districts covered and lists the GNAT locals.</li>
-            <li>Each local gets its own code. Send it to the <b>Local Chairman</b> on WhatsApp.</li>
-            <li><b>Local Chairman</b>: lists the basic units / workplaces in the local.</li>
+            <li>
+              <b>District Chairman</b>: confirms the political districts covered and lists the GNAT locals.
+            </li>
+            <li>
+              Each local gets its own code. Send it to the <b>Local Chairman</b> on WhatsApp.
+            </li>
+            <li>
+              <b>Local Chairman</b>: lists the basic units / workplaces in the local.
+            </li>
             <li>Both submit. The Regional Secretary reviews everything.</li>
           </ol>
         </div>

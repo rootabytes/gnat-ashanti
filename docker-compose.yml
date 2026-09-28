@@ -6,7 +6,8 @@ services:
       POSTGRES_USER: gnat
       POSTGRES_PASSWORD: gnat
       POSTGRES_DB: gnat
-    ports: ['5432:5432']
+    # Another project already on 5432? GNAT_DB_PORT=5434 docker compose up -d (and use :5434 in the URLs)
+    ports: ['${GNAT_DB_PORT:-5432}:5432']
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro

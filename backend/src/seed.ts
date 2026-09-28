@@ -15,10 +15,11 @@ export async function seed(): Promise<void> {
   const ash = await one<{ id: number }>(`SELECT id FROM regions WHERE code = 'ASH'`);
   if (ash) {
     for (const d of ASHANTI_POLITICAL_DISTRICTS) {
-      await pool.query(
-        `INSERT INTO political_districts (region_id, name, kind) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
-        [ash.id, d.name, d.kind],
-      );
+      await pool.query(`INSERT INTO political_districts (region_id, name, kind) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, [
+        ash.id,
+        d.name,
+        d.kind,
+      ]);
     }
   }
 
@@ -27,7 +28,8 @@ export async function seed(): Promise<void> {
     const existing = await one('SELECT id FROM admins WHERE email = $1', [email]);
     if (!existing) {
       const hash = await bcrypt.hash(config.adminPassword, 12);
-      await pool.query('INSERT INTO admins (email, name, password_hash, region_id) VALUES ($1,$2,$3,NULL)', [
+      // The password sits in plain text in the host's variables, so it only works once.
+      await pool.query('INSERT INTO admins (email, name, password_hash, region_id, must_change_password) VALUES ($1,$2,$3,NULL,TRUE)', [
         email,
         config.adminName,
         hash,
@@ -36,6 +38,7 @@ export async function seed(): Promise<void> {
     }
   } else {
     const any = await one('SELECT id FROM admins LIMIT 1');
-    if (!any) console.warn('[seed] No admin exists. Set ADMIN_EMAIL and ADMIN_PASSWORD and restart.');
+    // The demo creates its own admins after this (demo.ts).
+    if (!any && !config.demoMode) console.warn('[seed] No admin exists. Set ADMIN_EMAIL and ADMIN_PASSWORD and restart.');
   }
 }

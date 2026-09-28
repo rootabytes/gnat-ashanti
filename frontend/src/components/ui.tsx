@@ -1,6 +1,26 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
-import type { ButtonHTMLAttributes, ComponentProps, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
-import { AlertTriangle, CheckCircle2, Copy, Info, Loader2, MessageCircle, OctagonAlert, PencilLine, SendHorizontal, Undo2, X } from 'lucide-react';
+import type {
+  ButtonHTMLAttributes,
+  ComponentProps,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Copy,
+  Info,
+  Loader2,
+  MessageCircle,
+  OctagonAlert,
+  PencilLine,
+  SendHorizontal,
+  Smartphone,
+  Undo2,
+  X,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Status } from '../lib/api';
 
@@ -46,7 +66,19 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
   return <Loader2 className={cx('animate-spin', className)} aria-hidden />;
 }
 
-export function Field({ label, hint, error, children, htmlFor }: { label: string; hint?: ReactNode; error?: string | null; children: ReactNode; htmlFor?: string }) {
+export function Field({
+  label,
+  hint,
+  error,
+  children,
+  htmlFor,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string | null;
+  children: ReactNode;
+  htmlFor?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <label htmlFor={htmlFor} className="block text-sm font-semibold text-ink">
@@ -87,7 +119,19 @@ export function TextField({
   );
 }
 
-export function Card({ children, className, title, action, subtitle }: { children: ReactNode; className?: string; title?: ReactNode; subtitle?: ReactNode; action?: ReactNode }) {
+export function Card({
+  children,
+  className,
+  title,
+  action,
+  subtitle,
+}: {
+  children: ReactNode;
+  className?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <section className={cx('rounded-xl border border-line bg-surface shadow-sm print-plain', className)}>
       {(title || action) && (
@@ -114,14 +158,25 @@ export const STATUS_META: Record<Status, { label: string; icon: LucideIcon; fg: 
 export function StatusBadge({ status }: { status: Status }) {
   const m = STATUS_META[status];
   return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ color: m.fg, background: m.bg }}>
+    <span
+      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold"
+      style={{ color: m.fg, background: m.bg }}
+    >
       <m.icon className="h-3.5 w-3.5" aria-hidden />
       {m.label}
     </span>
   );
 }
 
-export function Alert({ tone = 'info', title, children }: { tone?: 'info' | 'error' | 'warn' | 'success'; title?: ReactNode; children?: ReactNode }) {
+export function Alert({
+  tone = 'info',
+  title,
+  children,
+}: {
+  tone?: 'info' | 'error' | 'warn' | 'success';
+  title?: ReactNode;
+  children?: ReactNode;
+}) {
   const t = {
     info: { fg: 'var(--brand)', bg: 'var(--brand-soft)', icon: Info },
     error: { fg: 'var(--danger)', bg: 'var(--danger-bg)', icon: OctagonAlert },
@@ -132,7 +187,11 @@ export function Alert({ tone = 'info', title, children }: { tone?: 'info' | 'err
     <div role={tone === 'error' ? 'alert' : 'status'} className="flex gap-3 rounded-lg px-4 py-3 text-sm" style={{ background: t.bg }}>
       <t.icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: t.fg }} aria-hidden />
       <div className="min-w-0 text-ink">
-        {title && <p className="font-semibold" style={{ color: t.fg }}>{title}</p>}
+        {title && (
+          <p className="font-semibold" style={{ color: t.fg }}>
+            {title}
+          </p>
+        )}
         {children && <div className={title ? 'mt-0.5' : ''}>{children}</div>}
       </div>
     </div>
@@ -158,7 +217,19 @@ export function Loading({ label = 'Loading…' }: { label?: string }) {
 
 // ---------- dialogs ----------
 
-export function Modal({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -256,12 +327,21 @@ export function Providers({ children }: { children: ReactNode }) {
           {state?.input && (
             <div className="mt-3">
               <Field label={state.input.label} htmlFor={inputId}>
-                <Textarea id={inputId} value={value} placeholder={state.input.placeholder} onChange={(e) => setValue(e.target.value)} autoFocus />
+                <Textarea
+                  id={inputId}
+                  value={value}
+                  placeholder={state.input.placeholder}
+                  onChange={(e) => setValue(e.target.value)}
+                  autoFocus
+                />
               </Field>
             </div>
           )}
         </Modal>
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4" aria-live="polite">
+        <div
+          className="no-print pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+          aria-live="polite"
+        >
           {toasts.map((t) => (
             <div
               key={t.id}
@@ -301,6 +381,9 @@ export function CopyButton({ text, label = 'Copy', size = 'sm' }: { text: string
   );
 }
 
+// WhatsApp green, deepened from #128C4B (4.3:1) to meet 4.5:1 with white text.
+const WHATSAPP_GREEN = '#0F7A41';
+
 export function WhatsAppButton({ href, label = 'WhatsApp', size = 'sm' }: { href: string; label?: string; size?: 'sm' | 'md' }) {
   return (
     <a
@@ -311,9 +394,25 @@ export function WhatsAppButton({ href, label = 'WhatsApp', size = 'sm' }: { href
         'inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold text-white hover:opacity-90',
         size === 'sm' ? 'h-8 px-3 text-sm' : 'h-11 px-4',
       )}
-      style={{ background: '#128C4B' }}
+      style={{ background: WHATSAPP_GREEN }}
     >
       <MessageCircle className="h-4 w-4" aria-hidden />
+      {label}
+    </a>
+  );
+}
+
+/** Opens the phone's own SMS app with the message ready (see smsLink). */
+export function SmsButton({ href, label = 'SMS', size = 'sm' }: { href: string; label?: string; size?: 'sm' | 'md' }) {
+  return (
+    <a
+      href={href}
+      className={cx(
+        'inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-surface font-semibold text-brand hover:bg-surface-2',
+        size === 'sm' ? 'h-8 px-3 text-sm' : 'h-11 px-4',
+      )}
+    >
+      <Smartphone className="h-4 w-4" aria-hidden />
       {label}
     </a>
   );

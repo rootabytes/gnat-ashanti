@@ -43,6 +43,11 @@ export function decryptCode(stored: string): string | null {
   }
 }
 
+/** Temporary admin password like Gnat-7K3P-Q9XM: typeable from a WhatsApp message, replaced at first sign-in. */
+export function generateTempPassword(): string {
+  return `Gnat-${generateCode('D').slice(2)}`;
+}
+
 export function newCode(kind: 'D' | 'L') {
   const code = generateCode(kind);
   return { code, lookup: codeLookup(code), enc: encryptCode(code) };

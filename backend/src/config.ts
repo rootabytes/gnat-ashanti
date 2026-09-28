@@ -27,4 +27,7 @@ export const config = {
   adminEmail: process.env.ADMIN_EMAIL,
   adminPassword: process.env.ADMIN_PASSWORD,
   adminName: process.env.ADMIN_NAME ?? 'Regional Secretary',
+  // Demo site: fictional data, one-tap sign-in for every role, resettable.
+  // Must run on its own database: demo.ts refuses a database that holds real data.
+  demoMode: process.env.DEMO_MODE === 'true',
 };

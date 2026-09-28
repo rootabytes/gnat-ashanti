@@ -3,6 +3,7 @@ import { Alert, Button, Card, CopyButton, Loading, Select, TextField, useConfirm
 import { api } from '../../lib/api';
 import { whatsappLink } from '../../lib/format';
 import type { PoliticalDistrict } from '../../lib/types';
+import { AccountCard, AdminsCard } from './Account';
 import { PageTitle, useAdmin } from './AdminApp';
 
 export default function Settings() {
@@ -11,7 +12,7 @@ export default function Settings() {
       <PageTitle title="Settings" />
       <RegistrationCard />
       <PoliticalCard />
-      <PasswordCard />
+      <AccountCard />
       <AdminsCard />
     </div>
   );
@@ -61,9 +62,15 @@ function RegistrationCard() {
               placeholder="e.g. torch2026"
             />
           </div>
-          <Button type="submit" busy={busy}>Save key</Button>
+          <Button type="submit" busy={busy}>
+            Save key
+          </Button>
         </form>
-        {!region.registration_key && <Alert tone="warn">No registration key is set. Anyone who finds the link can register a district. You can delete fake ones from the district page.</Alert>}
+        {!region.registration_key && (
+          <Alert tone="warn">
+            No registration key is set. Anyone who finds the link can register a district. You can delete fake ones from the district page.
+          </Alert>
+        )}
         <div>
           <p className="mb-2 text-sm font-semibold text-ink">Message for the District Chairmen WhatsApp group</p>
           <pre className="whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-3 text-sm text-ink-2">{message}</pre>
@@ -108,13 +115,20 @@ function PoliticalCard() {
               }
             }}
           >
-            <TextField label="Add a district" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name without “Municipal/District”" />
+            <TextField
+              label="Add a district"
+              value={f.name}
+              onChange={(e) => setF({ ...f, name: e.target.value })}
+              placeholder="Name without “Municipal/District”"
+            />
             <Select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} aria-label="Type">
               <option>District</option>
               <option>Municipal</option>
               <option>Metropolitan</option>
             </Select>
-            <Button type="submit" disabled={f.name.trim().length < 2}>Add</Button>
+            <Button type="submit" disabled={f.name.trim().length < 2}>
+              Add
+            </Button>
           </form>
           <p className="mb-2 text-sm text-ink-3">{list.length} districts</p>
           <ul className="grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -124,7 +138,7 @@ function PoliticalCard() {
                   {p.name} <span className="text-xs text-ink-3">{p.kind}</span>
                 </span>
                 <button
-                  className="text-xs text-danger opacity-60 hover:opacity-100"
+                  className="rounded px-1 text-xs text-ink-3 hover:text-danger focus-visible:text-danger"
                   aria-label={`Remove ${p.name}`}
                   onClick={async () => {
                     const { ok } = await confirm({ title: `Remove ${p.name}?`, confirm: 'Remove', danger: true });
@@ -144,99 +158,6 @@ function PoliticalCard() {
           </ul>
         </>
       )}
-    </Card>
-  );
-}
-
-function PasswordCard() {
-  const toast = useToast();
-  const [f, setF] = useState({ current: '', next: '', again: '' });
-  const [err, setErr] = useState<string | null>(null);
-  return (
-    <Card title="Change your password">
-      <form
-        className="grid max-w-md gap-3"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setErr(null);
-          if (f.next !== f.again) return setErr('The new passwords do not match.');
-          try {
-            await api.admin.post('/admin/password', { current: f.current, next: f.next });
-            setF({ current: '', next: '', again: '' });
-            toast('Password changed');
-          } catch (e: any) {
-            setErr(e.message);
-          }
-        }}
-      >
-        <TextField label="Current password" type="password" autoComplete="current-password" value={f.current} onChange={(e) => setF({ ...f, current: e.target.value })} required />
-        <TextField label="New password" type="password" autoComplete="new-password" hint="At least 10 characters." value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} required minLength={10} />
-        <TextField label="New password again" type="password" autoComplete="new-password" value={f.again} onChange={(e) => setF({ ...f, again: e.target.value })} required />
-        {err && <Alert tone="error">{err}</Alert>}
-        <Button type="submit" className="justify-self-start">Change password</Button>
-      </form>
-    </Card>
-  );
-}
-
-interface AdminRow {
-  id: number;
-  email: string;
-  name: string;
-  region_id: number | null;
-  region_name: string | null;
-  last_login_at: string | null;
-}
-
-function AdminsCard() {
-  const { me } = useAdmin();
-  const toast = useToast();
-  const [rows, setRows] = useState<AdminRow[] | null>(null);
-  const [f, setF] = useState({ name: '', email: '', password: '', regionId: '' });
-  const national = me.region_id === null;
-
-  useEffect(() => {
-    if (national) api.admin.get<AdminRow[]>('/admin/admins').then(setRows, () => setRows([]));
-  }, [national]);
-
-  if (!national) return null;
-  return (
-    <Card title="Admins" subtitle="People who can open this dashboard. A regional admin only sees their own region.">
-      {rows && (
-        <ul className="mb-4 space-y-1 text-sm">
-          {rows.map((a) => (
-            <li key={a.id}>
-              <b className="text-ink">{a.name}</b> <span className="text-ink-3">· {a.email} · {a.region_name ?? 'All regions'}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form
-        className="grid gap-3 sm:grid-cols-2"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            const row = await api.admin.post<AdminRow>('/admin/admins', { ...f, regionId: f.regionId ? Number(f.regionId) : null });
-            setRows([...(rows ?? []), { ...row, region_name: me.regions.find((r) => r.id === row.region_id)?.name ?? null, last_login_at: null }]);
-            setF({ name: '', email: '', password: '', regionId: '' });
-            toast('Admin added. Share the password with them privately.');
-          } catch (err: any) {
-            toast(err.message, 'error');
-          }
-        }}
-      >
-        <TextField label="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required />
-        <TextField label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required />
-        <TextField label="Temporary password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required minLength={10} hint="At least 10 characters. They can change it in Settings." />
-        <div className="space-y-1.5">
-          <label className="block text-sm font-semibold text-ink" htmlFor="admin-region">Access</label>
-          <Select id="admin-region" value={f.regionId} onChange={(e) => setF({ ...f, regionId: e.target.value })}>
-            <option value="">All regions</option>
-            {me.regions.map((r) => <option key={r.id} value={r.id}>{r.name} only</option>)}
-          </Select>
-        </div>
-        <Button type="submit" className="justify-self-start">Add admin</Button>
-      </form>
     </Card>
   );
 }

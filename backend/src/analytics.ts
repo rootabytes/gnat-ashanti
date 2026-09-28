@@ -133,7 +133,7 @@ export async function flatRows(regionId: number) {
     [regionId],
   );
   const units = await query(
-    `SELECT d.name AS district, l.name AS local, b.name, b.category
+    `SELECT d.name AS district, l.name AS local, b.name, b.category, b.gps_address
      FROM basic_units b JOIN locals l ON l.id = b.local_id JOIN districts d ON d.id = l.district_id
      WHERE d.region_id = $1 ORDER BY d.name, l.name, b.sort, b.id`,
     [regionId],

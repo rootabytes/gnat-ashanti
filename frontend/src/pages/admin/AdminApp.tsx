@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Building2, Download, History, KeyRound, LayoutDashboard, LogOut, Network, Settings as SettingsIcon } from 'lucide-react';
-import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { BrandBar } from '../../components/Brand';
+import { Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrandBar, Footer } from '../../components/Brand';
 import { Alert, Button, Card, cx, Loading, Select, TextField } from '../../components/ui';
 import { api, session } from '../../lib/api';
+import { useMeta } from '../../lib/useMeta';
 import { useSignedOutRedirect } from '../../lib/useSignedOut';
 import Activity from './Activity';
 import Codes from './Codes';
@@ -11,6 +12,7 @@ import DistrictReview from './DistrictReview';
 import Districts from './Districts';
 import Downloads from './Downloads';
 import Overview from './Overview';
+import { AccountSetup } from './Account';
 import Settings from './Settings';
 import Structure from './Structure';
 
@@ -24,9 +26,15 @@ export interface AdminRegion {
 }
 export interface AdminMe {
   id: number;
-  email: string;
+  email: string | null;
+  phone: string | null;
   name: string;
+  /** null: super admin, who sees every region and manages admins. */
   region_id: number | null;
+  /** Signed in with a temporary password: must choose their own before anything else. */
+  must_change_password: boolean;
+  /** One of the demo accounts, whose password is published on the demo page. */
+  demo: boolean;
   regions: AdminRegion[];
 }
 
@@ -90,7 +98,12 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
   const q = useCallback((p: string) => `${p}${p.includes('?') ? '&' : '?'}regionId=${rid}`, [rid]);
   const ctx = useMemo<Ctx | null>(() => (me && region ? { me, region, reloadMe, q } : null), [me, region, q]);
 
-  if (error) return <div className="p-6"><Alert tone="error">{error}</Alert></div>;
+  if (error)
+    return (
+      <div className="p-6">
+        <Alert tone="error">{error}</Alert>
+      </div>
+    );
   if (!me || !region || !ctx) return <Loading />;
 
   const signOut = () => {
@@ -98,6 +111,28 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
     onSignOut();
     nav('/admin');
   };
+
+  if (me.must_change_password) {
+    return (
+      <AdminCtx.Provider value={ctx}>
+        <div className="min-h-dvh">
+          <BrandBar
+            subtitle="Admin"
+            right={
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4" aria-hidden />
+                Sign out
+              </Button>
+            }
+          />
+          <main className="mx-auto max-w-md px-4 pt-10">
+            <AccountSetup onDone={reloadMe} />
+          </main>
+          <Footer />
+        </div>
+      </AdminCtx.Provider>
+    );
+  }
 
   return (
     <AdminCtx.Provider value={ctx}>
@@ -138,7 +173,10 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
           }
         />
         <div className="mx-auto max-w-6xl px-4 lg:flex lg:gap-6">
-          <nav aria-label="Admin" className="no-print -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6">
+          <nav
+            aria-label="Admin"
+            className="no-print -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6"
+          >
             <ul className="flex gap-1 py-2 lg:sticky lg:top-20 lg:flex-col lg:py-0">
               {NAV.map((n) => (
                 <li key={n.to}>
@@ -173,19 +211,21 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             </Routes>
           </main>
         </div>
+        <Footer />
       </div>
     </AdminCtx.Provider>
   );
 }
 
 function Login({ onDone }: { onDone: () => void }) {
+  const { meta } = useMeta();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="min-h-dvh">
-      <BrandBar subtitle="Regional Secretary" />
+      <BrandBar subtitle="Admin" />
       <main className="mx-auto max-w-sm px-4 pt-10">
         <Card title="Admin sign in">
           <form
@@ -195,7 +235,7 @@ function Login({ onDone }: { onDone: () => void }) {
               setBusy(true);
               setError(null);
               try {
-                const r = await api.pub.post<{ token: string; name: string; email: string }>('/admin/login', { email, password });
+                const r = await api.pub.post<{ token: string; name: string; email: string }>('/admin/login', { login: email, password });
                 session.setAdmin(r);
                 onDone();
               } catch (err: any) {
@@ -205,15 +245,40 @@ function Login({ onDone }: { onDone: () => void }) {
               }
             }}
           >
-            <TextField label="Email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <TextField label="Password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <TextField
+              label="Email or phone number"
+              type="text"
+              autoCapitalize="none"
+              spellCheck={false}
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <TextField
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
             {error && <Alert tone="error">{error}</Alert>}
             <Button type="submit" className="w-full" size="lg" busy={busy}>
               Sign in
             </Button>
+            {meta?.demo && (
+              <p className="text-center text-sm text-ink-3">
+                Testing?{' '}
+                <Link to="/demo" className="font-semibold text-brand">
+                  Sign in with a demo account
+                </Link>
+              </p>
+            )}
           </form>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 }

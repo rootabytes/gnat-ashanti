@@ -1,0 +1,7 @@
+**/dist
+**/node_modules
+**/package-lock.json
+e2e/screenshots
+frontend/tsconfig.tsbuildinfo
+*.woff
+*.png

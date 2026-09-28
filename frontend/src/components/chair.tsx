@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { session } from '../lib/api';
 import type { Status } from '../lib/api';
 import type { PoliticalDistrict } from '../lib/types';
-import { BrandBar } from './Brand';
+import { BrandBar, Footer } from './Brand';
 import { Alert, Button, cx, Input, StatusBadge } from './ui';
 
 export function ChairShell({ subtitle, children }: { subtitle: string; children: ReactNode }) {
@@ -30,11 +30,20 @@ export function ChairShell({ subtitle, children }: { subtitle: string; children:
         }
       />
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
+      <Footer />
     </div>
   );
 }
 
-export function Stepper({ steps, current, onSelect }: { steps: { label: string; done: boolean }[]; current: number; onSelect: (i: number) => void }) {
+export function Stepper({
+  steps,
+  current,
+  onSelect,
+}: {
+  steps: { label: string; done: boolean }[];
+  current: number;
+  onSelect: (i: number) => void;
+}) {
   return (
     <nav aria-label="Form steps" className="no-print -mx-4 overflow-x-auto px-4">
       <ol className="flex min-w-max gap-1.5">
@@ -70,7 +79,17 @@ export function Stepper({ steps, current, onSelect }: { steps: { label: string; 
   );
 }
 
-export function StatusBanner({ status, adminNote, what, onReopen }: { status: Status; adminNote: string | null; what: string; onReopen?: () => void }) {
+export function StatusBanner({
+  status,
+  adminNote,
+  what,
+  onReopen,
+}: {
+  status: Status;
+  adminNote: string | null;
+  what: string;
+  onReopen?: () => void;
+}) {
   if (status === 'returned')
     return (
       <Alert tone="warn" title={`The Regional Secretary returned this ${what} for correction`}>
@@ -90,7 +109,11 @@ export function StatusBanner({ status, adminNote, what, onReopen }: { status: St
       </Alert>
     );
   if (status === 'approved')
-    return <Alert tone="success" title="Approved">The Regional Secretary has approved this {what}. It can no longer be changed here; contact the Secretary if something is wrong.</Alert>;
+    return (
+      <Alert tone="success" title="Approved">
+        The Regional Secretary has approved this {what}. It can no longer be changed here; contact the Secretary if something is wrong.
+      </Alert>
+    );
   return null;
 }
 
@@ -107,9 +130,28 @@ export function TitleRow({ title, status, children }: { title: string; status: S
 }
 
 /** Sticky bottom bar with Back / Next, so the next action is always under the thumb. */
-export function StepNav({ onBack, onNext, nextLabel = 'Next', nextIcon: NextIcon = ArrowRight, nextBusy, nextDisabled, extra }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; nextIcon?: LucideIcon; nextBusy?: boolean; nextDisabled?: boolean; extra?: ReactNode }) {
+export function StepNav({
+  onBack,
+  onNext,
+  nextLabel = 'Next',
+  nextIcon: NextIcon = ArrowRight,
+  nextBusy,
+  nextDisabled,
+  extra,
+}: {
+  onBack?: () => void;
+  onNext?: () => void;
+  nextLabel?: string;
+  nextIcon?: LucideIcon;
+  nextBusy?: boolean;
+  nextDisabled?: boolean;
+  extra?: ReactNode;
+}) {
   return (
-    <div className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div
+      className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3">
         {onBack ? (
           <Button variant="secondary" onClick={onBack}>
@@ -133,7 +175,17 @@ export function StepNav({ onBack, onNext, nextLabel = 'Next', nextIcon: NextIcon
   );
 }
 
-export function PoliticalPicker({ all, selected, onChange, disabled }: { all: PoliticalDistrict[]; selected: number[]; onChange: (ids: number[]) => void; disabled?: boolean }) {
+export function PoliticalPicker({
+  all,
+  selected,
+  onChange,
+  disabled,
+}: {
+  all: PoliticalDistrict[];
+  selected: number[];
+  onChange: (ids: number[]) => void;
+  disabled?: boolean;
+}) {
   const [q, setQ] = useState('');
   const sel = new Set(selected);
   const shown = useMemo(() => {
@@ -163,13 +215,31 @@ export function PoliticalPicker({ all, selected, onChange, disabled }: { all: Po
       )}
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
-        <Input className="pl-9" placeholder={`Search ${all.length} districts…`} value={q} onChange={(e) => setQ(e.target.value)} disabled={disabled} aria-label="Search political districts" />
+        <Input
+          className="pl-9"
+          placeholder={`Search ${all.length} districts…`}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          disabled={disabled}
+          aria-label="Search political districts"
+        />
       </div>
       <ul className="max-h-[50vh] divide-y divide-line overflow-y-auto rounded-lg border border-line">
         {shown.map((d) => (
           <li key={d.id}>
-            <label className={cx('flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-surface-2', disabled && 'cursor-not-allowed opacity-60')}>
-              <input type="checkbox" className="h-5 w-5 accent-[var(--brand)]" checked={sel.has(d.id)} onChange={() => toggle(d.id)} disabled={disabled} />
+            <label
+              className={cx(
+                'flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-surface-2',
+                disabled && 'cursor-not-allowed opacity-60',
+              )}
+            >
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[var(--brand)]"
+                checked={sel.has(d.id)}
+                onChange={() => toggle(d.id)}
+                disabled={disabled}
+              />
               <span className="flex-1 text-ink">{d.name}</span>
               <span className="text-xs text-ink-3">{d.kind}</span>
             </label>

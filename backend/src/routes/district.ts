@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { z } from 'zod';
 import { audit } from '../audit';
 import { requireRole } from '../auth';
 import { newCode } from '../crypto';
 import { one, query, tx } from '../db';
 import { ghPhone, HttpError, intParam, nameStr, optionalText, parse } from '../http';
+import { parseUnitsFile } from '../importUnits';
 import {
   districtDetail,
   getDistrictRow,
@@ -47,7 +48,7 @@ districtRouter.get('/me', async (req, res) => {
   res.json(await detail(req));
 });
 
-const detailsSchema = z.object({
+export const detailsSchema = z.object({
   chairName: nameStr.optional(),
   chairPhone: ghPhone,
   chairGroup: optionalText(150),
@@ -64,7 +65,7 @@ districtRouter.patch('/me', async (req, res) => {
   res.json(await detail(req));
 });
 
-const politicalSchema = z.object({ ids: z.array(z.number().int().positive()).max(60) });
+export const politicalSchema = z.object({ ids: z.array(z.number().int().positive()).max(60) });
 
 districtRouter.put('/political-districts', async (req, res) => {
   const { ids } = parse(politicalSchema, req.body);
@@ -85,7 +86,7 @@ districtRouter.put('/political-districts', async (req, res) => {
   res.json(await detail(req));
 });
 
-const localSchema = z.object({
+export const localSchema = z.object({
   name: nameStr,
   chairName: optionalText(150),
   chairPhone: ghPhone,
@@ -133,11 +134,7 @@ districtRouter.delete('/locals/:id', async (req, res) => {
 districtRouter.post('/locals/:id/reset-code', async (req, res) => {
   const id = await ownLocal(req);
   const c = newCode('L');
-  await query('UPDATE locals SET code_lookup = $2, code_enc = $3, code_version = code_version + 1 WHERE id = $1', [
-    id,
-    c.lookup,
-    c.enc,
-  ]);
+  await query('UPDATE locals SET code_lookup = $2, code_enc = $3, code_version = code_version + 1 WHERE id = $1', [id, c.lookup, c.enc]);
   await audit(req, 'local.reset_code', { type: 'local', id });
   res.json(await detail(req));
 });
@@ -153,6 +150,10 @@ districtRouter.put('/locals/:id/units', async (req, res) => {
   await replaceUnits(id, units);
   await audit(req, 'local.units', { type: 'local', id }, { count: units.length, by: 'district' });
   res.json(await localDetail(id, true));
+});
+
+districtRouter.post('/units/import', express.raw({ type: () => true, limit: '2mb' }), async (req, res) => {
+  res.json(await parseUnitsFile(req.body));
 });
 
 districtRouter.post('/locals/:id/submit', async (req, res) => {

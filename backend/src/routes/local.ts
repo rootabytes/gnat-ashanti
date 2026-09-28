@@ -1,9 +1,10 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { z } from 'zod';
 import { audit } from '../audit';
 import { requireRole } from '../auth';
 import { query } from '../db';
 import { ghPhone, nameStr, optionalText, parse } from '../http';
+import { parseUnitsFile } from '../importUnits';
 import { localDetail, reopenLocal, replaceUnits, submitLocal, unitsSchema } from '../services';
 
 export const localRouter = Router();
@@ -15,7 +16,7 @@ localRouter.get('/me', async (req, res) => {
   res.json(await localDetail(sid(req), false));
 });
 
-const detailsSchema = z.object({
+export const detailsSchema = z.object({
   chairName: nameStr.optional(),
   chairPhone: ghPhone,
   remarks: optionalText(1000),
@@ -36,6 +37,11 @@ localRouter.put('/units', async (req, res) => {
   await replaceUnits(sid(req), units);
   await audit(req, 'local.units', { type: 'local', id: sid(req) }, { count: units.length });
   res.json(await localDetail(sid(req), false));
+});
+
+/** Reads an uploaded Excel/CSV list. Nothing is saved: the editor shows the rows first. */
+localRouter.post('/units/import', express.raw({ type: () => true, limit: '2mb' }), async (req, res) => {
+  res.json(await parseUnitsFile(req.body));
 });
 
 localRouter.post('/submit', async (req, res) => {

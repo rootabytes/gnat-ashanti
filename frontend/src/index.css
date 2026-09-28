@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 
-/* Tokens: GNAT red, sky blue and white. Every colour the UI uses lives here so dark mode is one swap. */
+/* Tokens: GNAT red, sky blue and white. Every colour the UI uses lives here.
+   The site is always light (white), even when the phone or computer is in dark mode:
+   the brand is red, sky blue and white. */
 :root {
   color-scheme: light;
   --bg: #f4f9fd;
@@ -33,69 +35,6 @@
   --st-draft-bg: #e9f0f6;
   --danger: #c0262b;
   --danger-bg: #fde8e8;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --bg: #0b1622;
-    --surface: #111f2e;
-    --surface-2: #182a3c;
-    --border: #25405a;
-    --ink: #eef6fc;
-    --ink-2: #bfd3e3;
-    --ink-3: #8fa7bb;
-    --brand: #38bdf8;
-    --brand-ink: #04202f;
-    --brand-soft: #0f2d44;
-    --sky: #38bdf8;
-    --accent: #ff6b6b;
-    --accent-ink: #ff8a80;
-    --focus: #7dd3fc;
-    --series-1: #1795db;
-    --series-2: #e5484d;
-    --grid: #1c3044;
-    --st-approved: #5fd35f;
-    --st-approved-bg: #16331a;
-    --st-submitted: #c4b5fd;
-    --st-submitted-bg: #2a2150;
-    --st-returned: #f3b64a;
-    --st-returned-bg: #3a2c10;
-    --st-draft: #b3c6d6;
-    --st-draft-bg: #1d3144;
-    --danger: #ff7b7b;
-    --danger-bg: #3d1a1d;
-  }
-}
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --bg: #0b1622;
-  --surface: #111f2e;
-  --surface-2: #182a3c;
-  --border: #25405a;
-  --ink: #eef6fc;
-  --ink-2: #bfd3e3;
-  --ink-3: #8fa7bb;
-  --brand: #38bdf8;
-  --brand-ink: #04202f;
-  --brand-soft: #0f2d44;
-  --sky: #38bdf8;
-  --accent: #ff6b6b;
-  --accent-ink: #ff8a80;
-  --focus: #7dd3fc;
-  --series-1: #1795db;
-  --series-2: #e5484d;
-  --grid: #1c3044;
-  --st-approved: #5fd35f;
-  --st-approved-bg: #16331a;
-  --st-submitted: #c4b5fd;
-  --st-submitted-bg: #2a2150;
-  --st-returned: #f3b64a;
-  --st-returned-bg: #3a2c10;
-  --st-draft: #b3c6d6;
-  --st-draft-bg: #1d3144;
-  --danger: #ff7b7b;
-  --danger-bg: #3d1a1d;
 }
 
 @theme inline {

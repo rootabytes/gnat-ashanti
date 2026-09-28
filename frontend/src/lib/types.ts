@@ -13,6 +13,8 @@ export interface Region {
 export interface Meta {
   categories: Category[];
   regions: Region[];
+  /** True on the demo site: fictional data, one-tap sign-in for every role. */
+  demo: boolean;
 }
 export interface PoliticalDistrict {
   id: number;
@@ -23,6 +25,8 @@ export interface Unit {
   id?: number;
   name: string;
   category: string;
+  /** Ghana Post GPS digital address, e.g. AK-039-5028. Optional. */
+  gpsAddress?: string | null;
 }
 export interface LocalSummary {
   id: number;

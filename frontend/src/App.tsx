@@ -9,6 +9,11 @@ import LocalWorkspace from './pages/local/LocalWorkspace';
 
 // Admin (and its charts) is a separate download so chairmen on mobile data never fetch it.
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
+// Rarely opened pages stay out of the form bundle too.
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Demo = lazy(() => import('./pages/Demo'));
+
+const later = (el: React.ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
 export default function App() {
   return (
@@ -18,14 +23,9 @@ export default function App() {
       <Route path="/district" element={<DistrictWorkspace />} />
       <Route path="/district/locals/:id" element={<DistrictLocalEditor />} />
       <Route path="/local" element={<LocalWorkspace />} />
-      <Route
-        path="/admin/*"
-        element={
-          <Suspense fallback={<Loading />}>
-            <AdminApp />
-          </Suspense>
-        }
-      />
+      <Route path="/privacy" element={later(<Privacy />)} />
+      <Route path="/demo" element={later(<Demo />)} />
+      <Route path="/admin/*" element={later(<AdminApp />)} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

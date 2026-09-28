@@ -2,11 +2,13 @@
   "name": "gnat-mapping-e2e",
   "private": true,
   "type": "module",
-  "description": "Browser tests. Needs a FRESH database (they register 'Kumasi Metro'), the API on :4000 with the admin below, and the built site on :4173.",
+  "description": "Browser tests and accessibility audit. Needs a FRESH database (they register 'Kumasi Metro'), the API on :4000 with the admin in README.md, and the built site on :4173.",
   "scripts": {
-    "test": "node flow.mjs && node race.mjs"
+    "test": "node flow.mjs && node race.mjs && node a11y.mjs",
+    "a11y": "node a11y.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "playwright": "^1.56.0"
   }
 }

@@ -4,12 +4,14 @@ import express from 'express';
 import helmet from 'helmet';
 import { config } from './config';
 import { pool } from './db';
+import { demoRouter, prepareDatabase, resetDemo } from './demo';
 import { errorHandler } from './http';
 import { requestLogger } from './logging';
 import { adminRouter } from './routes/admin';
 import { districtRouter } from './routes/district';
 import { localRouter } from './routes/local';
 import { publicRouter } from './routes/public';
+import { openApiSpec } from './openapi';
 import { migrate } from './schema';
 import { seed } from './seed';
 
@@ -47,10 +49,17 @@ export function createApp() {
     }
   });
 
+  let spec: unknown;
+  app.get('/api/openapi.json', (_req, res) => {
+    spec ??= openApiSpec();
+    res.json(spec);
+  });
+
   app.use('/api', publicRouter);
   app.use('/api/district', districtRouter);
   app.use('/api/local', localRouter);
   app.use('/api/admin', adminRouter);
+  if (config.demoMode) app.use('/api/demo', demoRouter);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
   app.use(errorHandler);
   return app;
@@ -58,8 +67,12 @@ export function createApp() {
 
 async function main() {
   await migrate();
+  await prepareDatabase();
   await seed();
-  const server = createApp().listen(config.port, () => console.log(`[gnat-mapping] API listening on :${config.port}`));
+  if (config.demoMode) await resetDemo();
+  const server = createApp().listen(config.port, () =>
+    console.log(`[gnat-mapping] API listening on :${config.port}${config.demoMode ? ' (DEMO MODE)' : ''}`),
+  );
   const shutdown = () => {
     server.close(() => pool.end().finally(() => process.exit(0)));
     setTimeout(() => process.exit(0), 10_000).unref();

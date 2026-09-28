@@ -2,9 +2,25 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pencil, Plus, RotateCcw, Send, Share2, Trash2 } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ChairShell, PoliticalPicker, StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
-import { Alert, Button, Card, CopyButton, Empty, Field, Loading, Modal, StatusBadge, Textarea, TextField, useConfirm, useToast, WhatsAppButton } from '../../components/ui';
+import {
+  Alert,
+  Button,
+  Card,
+  CopyButton,
+  Empty,
+  Field,
+  Loading,
+  Modal,
+  StatusBadge,
+  Textarea,
+  TextField,
+  useConfirm,
+  useToast,
+  SmsButton,
+  WhatsAppButton,
+} from '../../components/ui';
 import { api, session } from '../../lib/api';
-import { districtInviteMessage, fmtPhone, localInviteMessage, plural, whatsappLink } from '../../lib/format';
+import { districtInviteMessage, fmtPhone, localInviteMessage, plural, smsLink, whatsappLink } from '../../lib/format';
 import type { DistrictDetail, LocalSummary, PoliticalDistrict } from '../../lib/types';
 import { useSignedOutRedirect } from '../../lib/useSignedOut';
 
@@ -115,11 +131,13 @@ function DistrictFlow() {
       body: (
         <>
           <p>
-            You are submitting <b>{d!.name}</b> with {plural(d!.politicalDistricts.length, 'political district')} and {plural(d!.locals.length, 'local')}.
+            You are submitting <b>{d!.name}</b> with {plural(d!.politicalDistricts.length, 'political district')} and{' '}
+            {plural(d!.locals.length, 'local')}.
           </p>
           {pending > 0 && (
             <p className="mt-2">
-              {plural(pending, 'local')} {pending === 1 ? 'has' : 'have'} not submitted workplaces yet. That's fine: they can still submit after you.
+              {plural(pending, 'local')} {pending === 1 ? 'has' : 'have'} not submitted workplaces yet. That's fine: they can still submit
+              after you.
             </p>
           )}
         </>
@@ -139,7 +157,11 @@ function DistrictFlow() {
   }
 
   async function reopen() {
-    const { ok } = await confirm({ title: 'Reopen for changes?', body: 'Your district goes back to “In progress”. Submit again when you are done.', confirm: 'Reopen' });
+    const { ok } = await confirm({
+      title: 'Reopen for changes?',
+      body: 'Your district goes back to “In progress”. Submit again when you are done.',
+      confirm: 'Reopen',
+    });
     if (!ok) return;
     try {
       hydrate(await api.chair.post<DistrictDetail>('/district/reopen'));
@@ -159,10 +181,36 @@ function DistrictFlow() {
 
         {step === 0 && (
           <Card title="District Chairman" subtitle="Your contact details, so the Regional Secretary can reach you.">
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveDetails(); }}>
-              <TextField label="Full name" value={form.chairName} onChange={(e) => setForm({ ...form, chairName: e.target.value })} required autoComplete="name" />
-              <TextField label="Phone number" type="tel" inputMode="tel" placeholder="024 123 4567" value={form.chairPhone} onChange={(e) => setForm({ ...form, chairPhone: e.target.value })} required autoComplete="tel" />
-              <TextField label="Name / group (optional)" hint="e.g. District Executive Committee" value={form.chairGroup} onChange={(e) => setForm({ ...form, chairGroup: e.target.value })} />
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveDetails();
+              }}
+            >
+              <TextField
+                label="Full name"
+                value={form.chairName}
+                onChange={(e) => setForm({ ...form, chairName: e.target.value })}
+                required
+                autoComplete="name"
+              />
+              <TextField
+                label="Phone number"
+                type="tel"
+                inputMode="tel"
+                placeholder="024 123 4567"
+                value={form.chairPhone}
+                onChange={(e) => setForm({ ...form, chairPhone: e.target.value })}
+                required
+                autoComplete="tel"
+              />
+              <TextField
+                label="Name / group (optional)"
+                hint="e.g. District Executive Committee"
+                value={form.chairGroup}
+                onChange={(e) => setForm({ ...form, chairGroup: e.target.value })}
+              />
               <Field label="Remarks (optional)" htmlFor="dremarks">
                 <Textarea id="dremarks" value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
               </Field>
@@ -187,7 +235,13 @@ function DistrictFlow() {
                 setPickDirty(true);
               }}
             />
-            <StepNav onBack={() => savePolitical(0)} onNext={() => savePolitical(2)} nextLabel={pickDirty ? 'Save & continue' : 'Next'} nextBusy={busy} nextDisabled={editable && !picked.length} />
+            <StepNav
+              onBack={() => savePolitical(0)}
+              onNext={() => savePolitical(2)}
+              nextLabel={pickDirty ? 'Save & continue' : 'Next'}
+              nextBusy={busy}
+              nextDisabled={editable && !picked.length}
+            />
           </Card>
         )}
 
@@ -203,7 +257,9 @@ function DistrictFlow() {
               </div>
               <div>
                 <dt className="text-ink-3">Political district(s)</dt>
-                <dd className="font-semibold text-ink">{d.politicalDistricts.map((p) => p.name).join(', ') || <span className="text-danger">None selected</span>}</dd>
+                <dd className="font-semibold text-ink">
+                  {d.politicalDistricts.map((p) => p.name).join(', ') || <span className="text-danger">None selected</span>}
+                </dd>
               </div>
             </dl>
             <h3 className="mt-5 mb-2 font-bold text-ink">GNAT Locals ({d.locals.length})</h3>
@@ -261,7 +317,19 @@ function MyCode({ d }: { d: DistrictDetail }) {
   );
 }
 
-function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDetail; editable: boolean; onChange: (d: DistrictDetail) => void; onBack: () => void; onNext: () => void }) {
+function LocalsStep({
+  d,
+  editable,
+  onChange,
+  onBack,
+  onNext,
+}: {
+  d: DistrictDetail;
+  editable: boolean;
+  onChange: (d: DistrictDetail) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
   const toast = useToast();
   const confirm = useConfirm();
   const [form, setForm] = useState({ name: '', chairName: '', chairPhone: '' });
@@ -301,10 +369,28 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
     >
       {editable && (
         <form onSubmit={add} className="space-y-3 rounded-xl border border-line bg-surface-2/60 p-3 sm:p-4">
-          <TextField label="Local name" placeholder="e.g. Ayalolo" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} />
+          <TextField
+            label="Local name"
+            placeholder="e.g. Ayalolo"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+            minLength={2}
+          />
           <div className="grid gap-3 sm:grid-cols-2">
-            <TextField label="Local Chairman (optional)" value={form.chairName} onChange={(e) => setForm({ ...form, chairName: e.target.value })} />
-            <TextField label="Chairman phone (optional)" type="tel" inputMode="tel" placeholder="024 123 4567" value={form.chairPhone} onChange={(e) => setForm({ ...form, chairPhone: e.target.value })} />
+            <TextField
+              label="Local Chairman (optional)"
+              value={form.chairName}
+              onChange={(e) => setForm({ ...form, chairName: e.target.value })}
+            />
+            <TextField
+              label="Chairman phone (optional)"
+              type="tel"
+              inputMode="tel"
+              placeholder="024 123 4567"
+              value={form.chairPhone}
+              onChange={(e) => setForm({ ...form, chairPhone: e.target.value })}
+            />
           </div>
           {err && <Alert tone="error">{err}</Alert>}
           <Button type="submit" busy={busy} disabled={form.name.trim().length < 2}>
@@ -316,11 +402,17 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
 
       <div className="mt-4 flex items-center justify-between text-sm">
         <p className="font-semibold text-ink">{plural(d.locals.length, 'local')}</p>
-        {d.locals.length > 0 && <p className="text-ink-3">{done} of {d.locals.length} submitted workplaces</p>}
+        {d.locals.length > 0 && (
+          <p className="text-ink-3">
+            {done} of {d.locals.length} submitted workplaces
+          </p>
+        )}
       </div>
 
       {d.locals.length === 0 ? (
-        <div className="mt-2"><Empty title="No locals yet">Add the first local above.</Empty></div>
+        <div className="mt-2">
+          <Empty title="No locals yet">Add the first local above.</Empty>
+        </div>
       ) : (
         <ul className="mt-2 space-y-2">
           {d.locals.map((l) => (
@@ -329,9 +421,12 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
                 <div className="min-w-0">
                   <p className="font-bold text-ink">{l.name}</p>
                   <p className="text-sm text-ink-3">
-                    {l.chairName ? `${l.chairName}${l.chairPhone ? ` · ${fmtPhone(l.chairPhone)}` : ''}` : 'No chairman yet'} · {plural(l.unitCount, 'workplace')}
+                    {l.chairName ? `${l.chairName}${l.chairPhone ? ` · ${fmtPhone(l.chairPhone)}` : ''}` : 'No chairman yet'} ·{' '}
+                    {plural(l.unitCount, 'workplace')}
                   </p>
-                  {l.status === 'returned' && l.adminNote && <p className="mt-1 text-sm text-[var(--st-returned)]">Returned: “{l.adminNote}”</p>}
+                  {l.status === 'returned' && l.adminNote && (
+                    <p className="mt-1 text-sm text-[var(--st-returned)]">Returned: “{l.adminNote}”</p>
+                  )}
                 </div>
                 <StatusBadge status={l.status} />
               </div>
@@ -340,7 +435,10 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
                   <Share2 className="h-4 w-4" aria-hidden />
                   Share code
                 </Button>
-                <Link to={`/district/locals/${l.id}`} className="inline-flex h-8 items-center rounded-lg border border-line px-3 text-sm font-semibold text-ink hover:bg-surface-2">
+                <Link
+                  to={`/district/locals/${l.id}`}
+                  className="inline-flex h-8 items-center rounded-lg border border-line px-3 text-sm font-semibold text-ink hover:bg-surface-2"
+                >
                   {l.status === 'draft' || l.status === 'returned' ? 'Fill workplaces' : 'View workplaces'}
                 </Link>
                 <Button size="sm" variant="ghost" onClick={() => setEditing(l)}>
@@ -355,7 +453,9 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
                     onClick={async () => {
                       const { ok } = await confirm({
                         title: `Delete ${l.name}?`,
-                        body: l.unitCount ? `Its ${plural(l.unitCount, 'workplace')} will also be deleted. This cannot be undone.` : 'This cannot be undone.',
+                        body: l.unitCount
+                          ? `Its ${plural(l.unitCount, 'workplace')} will also be deleted. This cannot be undone.`
+                          : 'This cannot be undone.',
                         confirm: 'Delete',
                         danger: true,
                       });
@@ -377,29 +477,68 @@ function LocalsStep({ d, editable, onChange, onBack, onNext }: { d: DistrictDeta
         </ul>
       )}
 
-      <ShareLocalModal local={sharing} district={d} onClose={() => setSharing(null)} onChange={(x) => { onChange(x); setSharing(x.locals.find((l) => l.id === sharing?.id) ?? null); }} />
-      <EditLocalModal local={editing} canRename={editable} onClose={() => setEditing(null)} onSaved={(x) => { onChange(x); setEditing(null); }} />
+      <ShareLocalModal
+        local={sharing}
+        district={d}
+        onClose={() => setSharing(null)}
+        onChange={(x) => {
+          onChange(x);
+          setSharing(x.locals.find((l) => l.id === sharing?.id) ?? null);
+        }}
+      />
+      <EditLocalModal
+        local={editing}
+        canRename={editable}
+        onClose={() => setEditing(null)}
+        onSaved={(x) => {
+          onChange(x);
+          setEditing(null);
+        }}
+      />
 
       <StepNav onBack={onBack} onNext={onNext} nextLabel="Review" />
     </Card>
   );
 }
 
-function ShareLocalModal({ local, district, onClose, onChange }: { local: LocalSummary | null; district: DistrictDetail; onClose: () => void; onChange: (d: DistrictDetail) => void }) {
+function ShareLocalModal({
+  local,
+  district,
+  onClose,
+  onChange,
+}: {
+  local: LocalSummary | null;
+  district: DistrictDetail;
+  onClose: () => void;
+  onChange: (d: DistrictDetail) => void;
+}) {
   const confirm = useConfirm();
   const toast = useToast();
-  if (!local) return <Modal open={false} onClose={onClose} title="">{null}</Modal>;
+  if (!local)
+    return (
+      <Modal open={false} onClose={onClose} title="">
+        {null}
+      </Modal>
+    );
   const msg = local.code ? localInviteMessage(local.name, district.name, local.code) : '';
   return (
     <Modal open onClose={onClose} title={`Send ${local.name} its code`}>
       <div className="space-y-4">
-        <p className="text-sm text-ink-2">Send this to the Local Chairman. The link opens their form directly.</p>
+        <p className="text-sm text-ink-2">
+          Send this to the Local Chairman from your own WhatsApp or SMS. The link opens their form directly. You can also read the code to
+          them on a call: it has no easily confused letters or numbers.
+        </p>
         <div className="rounded-xl border-2 border-dashed border-brand bg-brand-soft p-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">Access code</p>
           <p className="code-font mt-1 text-2xl font-extrabold text-brand">{local.code}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <WhatsAppButton size="md" href={whatsappLink(msg, local.chairPhone)} label={local.chairPhone ? `WhatsApp ${fmtPhone(local.chairPhone)}` : 'Share on WhatsApp'} />
+          <WhatsAppButton
+            size="md"
+            href={whatsappLink(msg, local.chairPhone)}
+            label={local.chairPhone ? `WhatsApp ${fmtPhone(local.chairPhone)}` : 'Share on WhatsApp'}
+          />
+          <SmsButton size="md" href={smsLink(msg, local.chairPhone)} />
           <CopyButton size="md" text={msg} label="Copy message" />
         </div>
         <details className="text-sm">
@@ -410,7 +549,12 @@ function ShareLocalModal({ local, district, onClose, onChange }: { local: LocalS
             variant="danger"
             className="mt-2"
             onClick={async () => {
-              const { ok } = await confirm({ title: 'Make a new code?', body: 'The old code and any phone signed in with it will stop working.', confirm: 'Make new code', danger: true });
+              const { ok } = await confirm({
+                title: 'Make a new code?',
+                body: 'The old code and any phone signed in with it will stop working.',
+                confirm: 'Make new code',
+                danger: true,
+              });
               if (!ok) return;
               try {
                 onChange(await api.chair.post<DistrictDetail>(`/district/locals/${local.id}/reset-code`));
@@ -429,7 +573,17 @@ function ShareLocalModal({ local, district, onClose, onChange }: { local: LocalS
   );
 }
 
-function EditLocalModal({ local, canRename, onClose, onSaved }: { local: LocalSummary | null; canRename: boolean; onClose: () => void; onSaved: (d: DistrictDetail) => void }) {
+function EditLocalModal({
+  local,
+  canRename,
+  onClose,
+  onSaved,
+}: {
+  local: LocalSummary | null;
+  canRename: boolean;
+  onClose: () => void;
+  onSaved: (d: DistrictDetail) => void;
+}) {
   const [f, setF] = useState({ name: '', chairName: '', chairPhone: '' });
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -444,7 +598,9 @@ function EditLocalModal({ local, canRename, onClose, onSaved }: { local: LocalSu
       title={`Edit ${local?.name ?? ''}`}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
           <Button
             busy={busy}
             onClick={async () => {
@@ -467,9 +623,21 @@ function EditLocalModal({ local, canRename, onClose, onSaved }: { local: LocalSu
       }
     >
       <div className="space-y-3">
-        <TextField label="Local name" value={f.name} disabled={!canRename} onChange={(e) => setF({ ...f, name: e.target.value })} hint={!canRename ? 'Reopen the district to rename a local.' : undefined} />
+        <TextField
+          label="Local name"
+          value={f.name}
+          disabled={!canRename}
+          onChange={(e) => setF({ ...f, name: e.target.value })}
+          hint={!canRename ? 'Reopen the district to rename a local.' : undefined}
+        />
         <TextField label="Local Chairman" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
-        <TextField label="Chairman phone" type="tel" inputMode="tel" value={f.chairPhone} onChange={(e) => setF({ ...f, chairPhone: e.target.value })} />
+        <TextField
+          label="Chairman phone"
+          type="tel"
+          inputMode="tel"
+          value={f.chairPhone}
+          onChange={(e) => setF({ ...f, chairPhone: e.target.value })}
+        />
         {err && <Alert tone="error">{err}</Alert>}
       </div>
     </Modal>

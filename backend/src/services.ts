@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { decryptCode } from './crypto';
 import { one, query, tx } from './db';
-import { HttpError, nameStr } from './http';
+import { gpsAddress, HttpError, nameStr } from './http';
 import { WORKPLACE_CATEGORIES } from './reference';
 
 export type Status = 'draft' | 'submitted' | 'returned' | 'approved';
@@ -16,6 +16,7 @@ export const unitsSchema = z.object({
       z.object({
         name: nameStr,
         category: z.enum(WORKPLACE_CATEGORIES, { message: 'choose a category from the list' }),
+        gpsAddress,
       }),
     )
     .max(MAX_UNITS_PER_LOCAL, `at most ${MAX_UNITS_PER_LOCAL} workplaces per local`),
@@ -34,7 +35,10 @@ export async function getLocalRow(localId: number) {
 
 export async function localDetail(localId: number, includeCode: boolean) {
   const l = await getLocalRow(localId);
-  const units = await query('SELECT id, name, category FROM basic_units WHERE local_id = $1 ORDER BY sort, id', [localId]);
+  const units = await query(
+    'SELECT id, name, category, gps_address AS "gpsAddress" FROM basic_units WHERE local_id = $1 ORDER BY sort, id',
+    [localId],
+  );
   return {
     id: l.id,
     name: l.name,
@@ -54,7 +58,7 @@ export async function localDetail(localId: number, includeCode: boolean) {
   };
 }
 
-export async function replaceUnits(localId: number, units: { name: string; category: string }[]) {
+export async function replaceUnits(localId: number, units: { name: string; category: string; gpsAddress?: string | null }[]) {
   const l = await getLocalRow(localId);
   if (!isEditable(l.status)) throw new HttpError(409, 'This local has been submitted and is locked. Reopen it to make changes.');
 
@@ -68,11 +72,12 @@ export async function replaceUnits(localId: number, units: { name: string; categ
   await tx(async (c) => {
     await c.query('DELETE FROM basic_units WHERE local_id = $1', [localId]);
     for (let i = 0; i < units.length; i++) {
-      await c.query('INSERT INTO basic_units (local_id, name, category, sort) VALUES ($1,$2,$3,$4)', [
+      await c.query('INSERT INTO basic_units (local_id, name, category, sort, gps_address) VALUES ($1,$2,$3,$4,$5)', [
         localId,
         units[i].name,
         units[i].category,
         i,
+        units[i].gpsAddress ?? null,
       ]);
     }
     await c.query('UPDATE locals SET updated_at = now() WHERE id = $1', [localId]);
@@ -124,12 +129,12 @@ export async function districtDetail(districtId: number, opts: { includeCodes: b
   let unitsByLocal: Record<number, any[]> = {};
   if (opts.includeUnits && locals.length) {
     const units = await query(
-      `SELECT b.id, b.local_id, b.name, b.category FROM basic_units b JOIN locals l ON l.id = b.local_id
+      `SELECT b.id, b.local_id, b.name, b.category, b.gps_address FROM basic_units b JOIN locals l ON l.id = b.local_id
        WHERE l.district_id = $1 ORDER BY b.local_id, b.sort, b.id`,
       [districtId],
     );
     unitsByLocal = units.reduce<Record<number, any[]>>((acc, u) => {
-      (acc[u.local_id] ??= []).push({ id: u.id, name: u.name, category: u.category });
+      (acc[u.local_id] ??= []).push({ id: u.id, name: u.name, category: u.category, gpsAddress: u.gps_address });
       return acc;
     }, {});
   }
@@ -174,9 +179,7 @@ export async function submitDistrict(districtId: number) {
   const problems: string[] = [];
   if (!d.chair_name) problems.push("Enter the district chairman's name.");
   if (!d.chair_phone) problems.push("Enter the district chairman's phone number.");
-  const pd = await one<{ n: number }>('SELECT count(*)::int AS n FROM district_political_districts WHERE district_id = $1', [
-    districtId,
-  ]);
+  const pd = await one<{ n: number }>('SELECT count(*)::int AS n FROM district_political_districts WHERE district_id = $1', [districtId]);
   if (!pd?.n) problems.push('Select at least one political administrative district.');
   const ln = await one<{ n: number }>('SELECT count(*)::int AS n FROM locals WHERE district_id = $1', [districtId]);
   if (!ln?.n) problems.push('Add at least one GNAT local.');

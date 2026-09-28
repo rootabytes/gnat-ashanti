@@ -32,6 +32,8 @@ function readToken(req: Request): Session | null {
   }
 }
 
+const ALLOWED_BEFORE_PASSWORD_CHANGE = new Set(['/me', '/password']);
+
 export function requireRole(role: Session['role']) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     const s = readToken(req);
@@ -39,13 +41,19 @@ export function requireRole(role: Session['role']) {
     // A reset access code must lock out every device that used the old one.
     if (s.role === 'district') {
       const row = await one('SELECT code_version FROM districts WHERE id = $1', [s.districtId]);
-      if (!row || row.code_version !== s.cv) return next(new HttpError(401, 'Your access code has changed. Please sign in with the new code.'));
+      if (!row || row.code_version !== s.cv)
+        return next(new HttpError(401, 'Your access code has changed. Please sign in with the new code.'));
     } else if (s.role === 'local') {
       const row = await one('SELECT code_version FROM locals WHERE id = $1', [s.localId]);
-      if (!row || row.code_version !== s.cv) return next(new HttpError(401, 'Your access code has changed. Please sign in with the new code.'));
+      if (!row || row.code_version !== s.cv)
+        return next(new HttpError(401, 'Your access code has changed. Please sign in with the new code.'));
     } else {
-      const row = await one('SELECT id FROM admins WHERE id = $1', [s.adminId]);
+      const row = await one('SELECT id, must_change_password FROM admins WHERE id = $1', [s.adminId]);
       if (!row) return next(new HttpError(401, 'Please sign in again.'));
+      // A temporary password (from Railway variables or another admin) opens nothing but the change-password screen.
+      if (row.must_change_password && !ALLOWED_BEFORE_PASSWORD_CHANGE.has(req.path)) {
+        return next(new HttpError(403, 'Choose your own password before continuing.'));
+      }
     }
     req.session = s;
     next();

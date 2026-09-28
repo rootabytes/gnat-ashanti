@@ -8,7 +8,19 @@ import type { Status } from '../../lib/api';
 const axisTick = { fill: 'var(--ink-3)', fontSize: 12 };
 
 /** Card with a chart ⇄ table toggle, so no number is only readable from a colour. */
-export function ChartCard({ title, subtitle, chart, table, action }: { title: string; subtitle?: string; chart: ReactNode; table: ReactNode; action?: ReactNode }) {
+export function ChartCard({
+  title,
+  subtitle,
+  chart,
+  table,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  chart: ReactNode;
+  table: ReactNode;
+  action?: ReactNode;
+}) {
   const [asTable, setAsTable] = useState(false);
   return (
     <Card
@@ -17,7 +29,10 @@ export function ChartCard({ title, subtitle, chart, table, action }: { title: st
       action={
         <div className="flex items-center gap-2">
           {action}
-          <button onClick={() => setAsTable((t) => !t)} className="no-print rounded-md border border-line px-2 py-1 text-xs font-semibold text-ink-2 hover:bg-surface-2">
+          <button
+            onClick={() => setAsTable((t) => !t)}
+            className="no-print rounded-md border border-line px-2 py-1 text-xs font-semibold text-ink-2 hover:bg-surface-2"
+          >
             {asTable ? 'Chart' : 'Table'}
           </button>
         </div>
@@ -34,7 +49,9 @@ export function SimpleTable({ head, rows }: { head: string[]; rows: (string | nu
       <thead>
         <tr className="border-b border-line text-left text-ink-3">
           {head.map((h, i) => (
-            <th key={h} className={`py-1.5 pr-3 font-semibold ${i > 0 ? 'text-right' : ''}`}>{h}</th>
+            <th key={h} className={`py-1.5 pr-3 font-semibold ${i > 0 ? 'text-right' : ''}`}>
+              {h}
+            </th>
           ))}
         </tr>
       </thead>
@@ -42,7 +59,9 @@ export function SimpleTable({ head, rows }: { head: string[]; rows: (string | nu
         {rows.map((r, i) => (
           <tr key={i} className="border-b border-line/60">
             {r.map((c, j) => (
-              <td key={j} className={`py-1.5 pr-3 ${j > 0 ? 'text-right tabular-nums' : 'text-ink'}`}>{c}</td>
+              <td key={j} className={`py-1.5 pr-3 ${j > 0 ? 'text-right tabular-nums' : 'text-ink'}`}>
+                {c}
+              </td>
             ))}
           </tr>
         ))}
@@ -97,7 +116,10 @@ export function CategoryChart({ data }: { data: { category: string; label: strin
                 cursor={{ fill: 'var(--surface-2)' }}
                 content={({ active, payload }) =>
                   active && payload?.length ? (
-                    <TooltipBox title={(payload[0].payload as any).label} rows={[{ label: 'Workplaces', value: payload[0].value as number, color: 'var(--series-1)' }]} />
+                    <TooltipBox
+                      title={(payload[0].payload as any).label}
+                      rows={[{ label: 'Workplaces', value: payload[0].value as number, color: 'var(--series-1)' }]}
+                    />
                   ) : null
                 }
               />
@@ -153,8 +175,26 @@ export function LocalsPerDistrictChart({ data }: { data: { name: string; locals:
                     }}
                   />
                   {/* stroke in the surface colour draws the 2px gap between stacked segments */}
-                  <Bar dataKey="done" stackId="a" fill="var(--series-1)" stroke="var(--surface)" strokeWidth={2} maxBarSize={18} isAnimationActive={false} />
-                  <Bar dataKey="pending" stackId="a" fill="var(--ink-3)" fillOpacity={0.45} stroke="var(--surface)" strokeWidth={2} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false} />
+                  <Bar
+                    dataKey="done"
+                    stackId="a"
+                    fill="var(--series-1)"
+                    stroke="var(--surface)"
+                    strokeWidth={2}
+                    maxBarSize={18}
+                    isAnimationActive={false}
+                  />
+                  <Bar
+                    dataKey="pending"
+                    stackId="a"
+                    fill="var(--ink-3)"
+                    fillOpacity={0.45}
+                    stroke="var(--surface)"
+                    strokeWidth={2}
+                    radius={[0, 4, 4, 0]}
+                    maxBarSize={18}
+                    isAnimationActive={false}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -163,7 +203,12 @@ export function LocalsPerDistrictChart({ data }: { data: { name: string; locals:
           <p className="py-6 text-center text-sm text-ink-3">No districts yet.</p>
         )
       }
-      table={<SimpleTable head={['GNAT District', 'Locals', 'Submitted', 'Workplaces']} rows={data.map((d) => [d.name, d.locals, d.localsDone, d.units])} />}
+      table={
+        <SimpleTable
+          head={['GNAT District', 'Locals', 'Submitted', 'Workplaces']}
+          rows={data.map((d) => [d.name, d.locals, d.localsDone, d.units])}
+        />
+      }
     />
   );
 }
@@ -189,7 +234,14 @@ export function TimelineChart({ data }: { data: { day: string; districts: number
               <ResponsiveContainer>
                 <BarChart data={rows} margin={{ left: -20, right: 8, top: 4, bottom: 0 }} barGap={2}>
                   <CartesianGrid vertical={false} stroke="var(--grid)" />
-                  <XAxis dataKey="day" tickFormatter={fmt} tick={axisTick} axisLine={{ stroke: 'var(--grid)' }} tickLine={false} minTickGap={16} />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={fmt}
+                    tick={axisTick}
+                    axisLine={{ stroke: 'var(--grid)' }}
+                    tickLine={false}
+                    minTickGap={16}
+                  />
                   <YAxis allowDecimals={false} tick={axisTick} axisLine={false} tickLine={false} />
                   <Tooltip
                     cursor={{ fill: 'var(--surface-2)' }}
@@ -218,7 +270,14 @@ export function TimelineChart({ data }: { data: { day: string; districts: number
           <p className="py-6 text-center text-sm text-ink-3">No submissions yet.</p>
         )
       }
-      table={<SimpleTable head={['Day', 'Districts', 'Locals', 'Registrations']} rows={rows.filter((r) => r.districts || r.locals || r.registrations).map((r) => [fmt(r.day), r.districts, r.locals, r.registrations])} />}
+      table={
+        <SimpleTable
+          head={['Day', 'Districts', 'Locals', 'Registrations']}
+          rows={rows
+            .filter((r) => r.districts || r.locals || r.registrations)
+            .map((r) => [fmt(r.day), r.districts, r.locals, r.registrations])}
+        />
+      }
     />
   );
 }
@@ -250,10 +309,20 @@ export function StatusBar({ label, counts }: { label: string; counts: Record<Sta
           <b className="text-ink">{done}</b> of {total} submitted{total ? ` · ${Math.round((done / total) * 100)}%` : ''}
         </span>
       </div>
-      <div className="flex h-3 gap-[2px] overflow-hidden rounded-full bg-surface-2" role="img" aria-label={order.map((k) => `${STATUS_META[k].label}: ${counts[k]}`).join(', ')}>
+      <div
+        className="flex h-3 gap-[2px] overflow-hidden rounded-full bg-surface-2"
+        role="img"
+        aria-label={order.map((k) => `${STATUS_META[k].label}: ${counts[k]}`).join(', ')}
+      >
         {total > 0 &&
           order.map((k) =>
-            counts[k] ? <div key={k} style={{ width: `${(counts[k] / total) * 100}%`, background: STATUS_META[k].fg }} title={`${STATUS_META[k].label}: ${counts[k]}`} /> : null,
+            counts[k] ? (
+              <div
+                key={k}
+                style={{ width: `${(counts[k] / total) * 100}%`, background: STATUS_META[k].fg }}
+                title={`${STATUS_META[k].label}: ${counts[k]}`}
+              />
+            ) : null,
           )}
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">

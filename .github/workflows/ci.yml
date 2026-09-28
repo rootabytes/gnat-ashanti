@@ -55,4 +55,89 @@ jobs:
       - run: npm run build
         env:
           VITE_API_URL: https://api.example.invalid
+      - run: npm run budget # the chairmen's form must stay small on mobile data
       - run: npm audit --omit=dev --audit-level=high
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  # Browser tests, accessibility audit (axe) and the demo site, against a real API and database.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gnat
+          POSTGRES_PASSWORD: gnat
+          POSTGRES_DB: gnat
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gnat" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ALLOWED_ORIGINS: http://localhost:4173
+      JWT_SECRET: ci-only-secret-at-least-32-characters-long
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: Build API
+        working-directory: backend
+        run: npm ci && npm run build
+      - name: Build site
+        working-directory: frontend
+        run: npm ci && npm run build
+        env:
+          VITE_API_URL: http://localhost:4000
+      - name: Install Playwright
+        working-directory: e2e
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Start API and site
+        run: |
+          (cd backend && nohup node dist/server.js > ../api.log 2>&1 &)
+          (cd frontend && nohup npx vite preview --port 4173 --strictPort > ../web.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf localhost:4000/api/health && curl -sf -o /dev/null localhost:4173 && break; sleep 1; done
+        env:
+          DATABASE_URL: postgres://gnat:gnat@localhost:5432/gnat
+          ADMIN_EMAIL: secretary@gnatashanti.org
+          ADMIN_PASSWORD: Secretary2026!
+      - name: Browser tests and accessibility audit
+        working-directory: e2e
+        run: npm test
+      - name: Restart the API as the demo site
+        run: |
+          pkill -f "node dist/server.js" || true
+          PGPASSWORD=gnat psql -h localhost -U gnat -d gnat -c 'CREATE DATABASE gnat_demo'
+          (cd backend && nohup node dist/server.js > ../api-demo.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf localhost:4000/api/health && break; sleep 1; done
+        env:
+          DATABASE_URL: postgres://gnat:gnat@localhost:5432/gnat_demo
+          DEMO_MODE: 'true'
+      - name: Demo site
+        working-directory: e2e
+        run: node demo.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots-and-logs
+          path: |
+            e2e/screenshots
+            *.log
+          retention-days: 7

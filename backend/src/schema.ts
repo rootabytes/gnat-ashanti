@@ -105,6 +105,29 @@ const migrations: { version: number; sql: string }[] = [
     CREATE INDEX audit_log_action_idx ON audit_log (action);
     `,
   },
+  {
+    version: 2,
+    sql: `
+    -- Ghana Post GPS digital address of a workplace, e.g. AK-039-5028. Optional.
+    ALTER TABLE basic_units ADD COLUMN gps_address TEXT;
+    -- Set for admins created with a temporary password; cleared when they choose their own.
+    ALTER TABLE admins ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+    -- Small key/value store. 'mode' = 'demo' marks a demo database (see demo.ts).
+    CREATE TABLE app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    `,
+  },
+  {
+    version: 3,
+    sql: `
+    -- Admins added by the super admin sign in first with their phone number and a
+    -- temporary password sent on WhatsApp, then add their own email.
+    ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
+    ALTER TABLE admins ADD COLUMN phone TEXT UNIQUE;
+    ALTER TABLE admins ADD CONSTRAINT admins_can_sign_in CHECK (email IS NOT NULL OR phone IS NOT NULL);
+    -- A temporary password stops working after this time if it was never replaced.
+    ALTER TABLE admins ADD COLUMN password_expires_at TIMESTAMPTZ;
+    `,
+  },
 ];
 
 export async function migrate(): Promise<void> {
@@ -114,9 +137,7 @@ export async function migrate(): Promise<void> {
     await client.query('SELECT pg_advisory_lock(727001)');
     await client.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
       version INT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
-    const done = new Set(
-      (await client.query<{ version: number }>('SELECT version FROM schema_migrations')).rows.map((r) => r.version),
-    );
+    const done = new Set((await client.query<{ version: number }>('SELECT version FROM schema_migrations')).rows.map((r) => r.version));
     for (const m of migrations) {
       if (done.has(m.version)) continue;
       await client.query('BEGIN');

@@ -6,15 +6,27 @@ import { signSession } from '../auth';
 import { codeLookup, newCode } from '../crypto';
 import { one, query } from '../db';
 import { ghPhone, HttpError, nameStr, optionalText, parse } from '../http';
+import { config } from '../config';
+import { sendUnitsTemplate } from '../importUnits';
 import { CATEGORY_LABELS, WORKPLACE_CATEGORIES } from '../reference';
 
 export const publicRouter = Router();
 
 // Generous limits: many teachers in one town can share a mobile carrier IP.
-const accessLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 40, standardHeaders: 'draft-8', legacyHeaders: false,
-  message: { error: 'Too many attempts. Please wait 15 minutes and try again.' } });
-const registerLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 15, standardHeaders: 'draft-8', legacyHeaders: false,
-  message: { error: 'Too many registrations from this network. Please try again later.' } });
+const accessLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  limit: 40,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait 15 minutes and try again.' },
+});
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  limit: 15,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many registrations from this network. Please try again later.' },
+});
 
 publicRouter.get('/meta', async (_req, res) => {
   const regions = await query(
@@ -24,7 +36,12 @@ publicRouter.get('/meta', async (_req, res) => {
   res.json({
     categories: WORKPLACE_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] })),
     regions: regions.map((r) => ({ id: r.id, name: r.name, code: r.code, requiresKey: r.requires_key })),
+    demo: config.demoMode,
   });
+});
+
+publicRouter.get('/units-template.xlsx', async (_req, res) => {
+  await sendUnitsTemplate(res);
 });
 
 publicRouter.get('/regions/:id/political-districts', async (req, res) => {
@@ -36,7 +53,7 @@ publicRouter.get('/regions/:id/political-districts', async (req, res) => {
   res.json(rows);
 });
 
-const registerSchema = z.object({
+export const registerSchema = z.object({
   regionId: z.number().int().positive(),
   registrationKey: z.string().trim().max(100).optional().nullable(),
   districtName: nameStr,
@@ -70,7 +87,7 @@ publicRouter.post('/register', registerLimiter, async (req, res) => {
   res.status(201).json({ token, code: c.code, role: 'district', name: body.districtName });
 });
 
-const accessSchema = z.object({ code: z.string().trim().min(6).max(40) });
+export const accessSchema = z.object({ code: z.string().trim().min(6).max(40) });
 
 publicRouter.post('/access', accessLimiter, async (req, res) => {
   const { code } = parse(accessSchema, req.body);

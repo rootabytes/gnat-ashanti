@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Alert, Button, Input, Loading, Modal, Select, StatusBadge, TextField, useToast, WhatsAppButton } from '../../components/ui';
+import {
+  Alert,
+  Button,
+  Input,
+  Loading,
+  Modal,
+  Select,
+  SmsButton,
+  StatusBadge,
+  TextField,
+  useToast,
+  WhatsAppButton,
+} from '../../components/ui';
 import { api } from '../../lib/api';
 import type { Status } from '../../lib/api';
-import { fmtPhone, timeAgo, whatsappLink } from '../../lib/format';
+import { fmtPhone, smsLink, timeAgo, whatsappLink } from '../../lib/format';
 import type { DistrictDetail } from '../../lib/types';
 import { PageTitle, useAdmin } from './AdminApp';
 import type { OverviewData } from './Overview';
@@ -28,11 +40,17 @@ export default function Districts() {
     if (!data) return [];
     const s = search.trim().toLowerCase();
     let r = data.perDistrict.filter(
-      (d) => (!s || d.name.toLowerCase().includes(s) || (d.chairName ?? '').toLowerCase().includes(s)) &&
-        (!status || (status === 'incomplete' ? d.status === 'draft' || d.status === 'returned' || d.localsDone < d.locals : d.status === status)),
+      (d) =>
+        (!s || d.name.toLowerCase().includes(s) || (d.chairName ?? '').toLowerCase().includes(s)) &&
+        (!status ||
+          (status === 'incomplete' ? d.status === 'draft' || d.status === 'returned' || d.localsDone < d.locals : d.status === status)),
     );
     r = [...r].sort((a, b) =>
-      sort === 'name' ? a.name.localeCompare(b.name) : sort === 'updated' ? +new Date(b.updatedAt) - +new Date(a.updatedAt) : progress(a) - progress(b),
+      sort === 'name'
+        ? a.name.localeCompare(b.name)
+        : sort === 'updated'
+          ? +new Date(b.updatedAt) - +new Date(a.updatedAt)
+          : progress(a) - progress(b),
     );
     return r;
   }, [data, search, status, sort]);
@@ -45,12 +63,23 @@ export default function Districts() {
       <PageTitle
         title="Districts"
         sub="Track, remind and review every GNAT district."
-        action={<Button onClick={() => setAdding(true)}><Plus className="h-4 w-4" aria-hidden />Add district</Button>}
+        action={
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Add district
+          </Button>
+        }
       />
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_12rem_12rem]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
-          <Input className="pl-9" placeholder="Search district or chairman…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
+          <Input
+            className="pl-9"
+            placeholder="Search district or chairman…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search"
+          />
         </div>
         <Select value={status} onChange={(e) => setStatus(e.target.value as any)} aria-label="Filter by status">
           <option value="">All statuses</option>
@@ -67,7 +96,9 @@ export default function Districts() {
         </Select>
       </div>
 
-      <p className="mb-2 text-sm text-ink-3">{rows.length} of {data.perDistrict.length} districts</p>
+      <p className="mb-2 text-sm text-ink-3">
+        {rows.length} of {data.perDistrict.length} districts
+      </p>
       <ul className="space-y-2">
         {rows.map((d) => (
           <DistrictRow key={d.id} d={d} />
@@ -102,19 +133,41 @@ function DistrictRow({ d }: { d: Row }) {
         <StatusBadge status={d.status} />
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-sm sm:grid-cols-4">
-        <div><p className="text-ink-3">Political</p><p className="font-semibold tabular-nums">{d.political}</p></div>
-        <div><p className="text-ink-3">Locals done</p><p className="font-semibold tabular-nums">{d.localsDone}/{d.locals}</p></div>
-        <div><p className="text-ink-3">Workplaces</p><p className="font-semibold tabular-nums">{d.units}</p></div>
-        <div className="hidden sm:block"><p className="text-ink-3">Updated</p><p className="font-semibold">{timeAgo(d.updatedAt)}</p></div>
+        <div>
+          <p className="text-ink-3">Political</p>
+          <p className="font-semibold tabular-nums">{d.political}</p>
+        </div>
+        <div>
+          <p className="text-ink-3">Locals done</p>
+          <p className="font-semibold tabular-nums">
+            {d.localsDone}/{d.locals}
+          </p>
+        </div>
+        <div>
+          <p className="text-ink-3">Workplaces</p>
+          <p className="font-semibold tabular-nums">{d.units}</p>
+        </div>
+        <div className="hidden sm:block">
+          <p className="text-ink-3">Updated</p>
+          <p className="font-semibold">{timeAgo(d.updatedAt)}</p>
+        </div>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2" role="img" aria-label={`${pct}% of locals submitted`}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--series-1)' }} />
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link to={`/admin/districts/${d.id}`} className="inline-flex h-8 items-center rounded-lg bg-brand px-3 text-sm font-semibold text-brand-ink">
+        <Link
+          to={`/admin/districts/${d.id}`}
+          className="inline-flex h-8 items-center rounded-lg bg-brand px-3 text-sm font-semibold text-brand-ink"
+        >
           {d.status === 'submitted' ? 'Review' : 'Open'}
         </Link>
-        {d.chairPhone && d.status !== 'approved' && <WhatsAppButton href={whatsappLink(reminder, d.chairPhone)} label="Remind" />}
+        {d.chairPhone && d.status !== 'approved' && (
+          <>
+            <WhatsAppButton href={whatsappLink(reminder, d.chairPhone)} label="Remind" />
+            <SmsButton href={smsLink(reminder, d.chairPhone)} />
+          </>
+        )}
       </div>
     </li>
   );
@@ -134,7 +187,9 @@ function AddDistrictModal({ open, onClose }: { open: boolean; onClose: () => voi
       title="Add a GNAT district"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
           <Button
             busy={busy}
             disabled={f.name.trim().length < 2}
@@ -142,7 +197,11 @@ function AddDistrictModal({ open, onClose }: { open: boolean; onClose: () => voi
               setBusy(true);
               setErr(null);
               try {
-                const d = await api.admin.post<DistrictDetail>(q('/admin/districts'), { name: f.name, chairName: f.chairName || null, chairPhone: f.chairPhone || null });
+                const d = await api.admin.post<DistrictDetail>(q('/admin/districts'), {
+                  name: f.name,
+                  chairName: f.chairName || null,
+                  chairPhone: f.chairPhone || null,
+                });
                 toast(`${d.name} added`);
                 nav(`/admin/districts/${d.id}`);
               } catch (e: any) {
@@ -161,7 +220,12 @@ function AddDistrictModal({ open, onClose }: { open: boolean; onClose: () => voi
         <p className="text-sm text-ink-2">An access code is created for the district. Send it to the chairman from the district page.</p>
         <TextField label="GNAT district name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
         <TextField label="Chairman (optional)" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
-        <TextField label="Chairman phone (optional)" type="tel" value={f.chairPhone} onChange={(e) => setF({ ...f, chairPhone: e.target.value })} />
+        <TextField
+          label="Chairman phone (optional)"
+          type="tel"
+          value={f.chairPhone}
+          onChange={(e) => setF({ ...f, chairPhone: e.target.value })}
+        />
         {err && <Alert tone="error">{err}</Alert>}
       </div>
     </Modal>

@@ -36,6 +36,7 @@ const FIELD_LABELS: Record<string, string> = {
   next: 'New password',
   note: 'Note',
   registrationKey: 'Registration key',
+  gpsAddress: 'GPS address',
 };
 
 export function intParam(v: unknown): number {
@@ -50,6 +51,9 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
   }
   if (err?.code === '23505') {
     return res.status(409).json({ error: 'That name is already in use here. Please choose a different one.' });
+  }
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'That file is too large. Keep it under 2 MB.' });
   }
   if (err?.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON' });
@@ -94,4 +98,27 @@ export const ghPhone = z
       return z.NEVER;
     }
     return `+233${local}`;
+  });
+
+/** Ghana Post GPS digital address: AK-039-5028, ak0395028, "AK 039 5028". Stored as AK-039-5028. */
+export function normalizeGps(s: string): string | null {
+  // Unseparated digits are ambiguous: prefer the common 3+4 split (lazy first group).
+  const m = /^([A-Z]{2})[\s-]*(\d{3,4}?)[\s-]*(\d{3,4})$/.exec(s.trim().toUpperCase());
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+export const gpsAddress = z
+  .string()
+  .trim()
+  .max(20)
+  .optional()
+  .nullable()
+  .transform((s, ctx) => {
+    if (!s) return null;
+    const v = normalizeGps(s);
+    if (!v) {
+      ctx.addIssue({ code: 'custom', message: 'enter a Ghana Post GPS address like AK-039-5028, or leave it blank' });
+      return z.NEVER;
+    }
+    return v;
   });

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Send } from 'lucide-react';
 import { StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
 import { Alert, Button, Card, Field, Loading, Textarea, TextField, useConfirm, useToast } from '../../components/ui';
-import { UnitsEditor } from '../../components/UnitsEditor';
+import { GpsTag, UnitsEditor } from '../../components/UnitsEditor';
 import { api } from '../../lib/api';
 import { fmtPhone } from '../../lib/format';
 import type { LocalDetail, Unit } from '../../lib/types';
@@ -100,7 +100,11 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
   }
 
   async function reopen() {
-    const { ok } = await confirm({ title: 'Reopen for changes?', body: 'The list will go back to “In progress”. Remember to submit again when you finish.', confirm: 'Reopen' });
+    const { ok } = await confirm({
+      title: 'Reopen for changes?',
+      body: 'The list will go back to “In progress”. Remember to submit again when you finish.',
+      confirm: 'Reopen',
+    });
     if (!ok) return;
     try {
       hydrate(await api.chair.post<LocalDetail>(`${base}/reopen`));
@@ -130,13 +134,34 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
                 if (await saveDetails()) setStep(1);
               }}
             >
-              <TextField label="Full name" value={form.chairName} onChange={(e) => setForm({ ...form, chairName: e.target.value })} required autoComplete="name" />
-              <TextField label="Phone number" type="tel" inputMode="tel" placeholder="024 123 4567" value={form.chairPhone} onChange={(e) => setForm({ ...form, chairPhone: e.target.value })} required autoComplete="tel" />
+              <TextField
+                label="Full name"
+                value={form.chairName}
+                onChange={(e) => setForm({ ...form, chairName: e.target.value })}
+                required
+                autoComplete="name"
+              />
+              <TextField
+                label="Phone number"
+                type="tel"
+                inputMode="tel"
+                placeholder="024 123 4567"
+                value={form.chairPhone}
+                onChange={(e) => setForm({ ...form, chairPhone: e.target.value })}
+                required
+                autoComplete="tel"
+              />
               <Field label="Remarks (optional)" htmlFor="remarks" hint="Anything the Regional Secretary should know about this local.">
                 <Textarea id="remarks" value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
               </Field>
               {formErr && <Alert tone="error">{formErr}</Alert>}
-              <StepNav onNext={async () => { if (await saveDetails()) setStep(1); }} nextLabel="Save & continue" nextBusy={busy} />
+              <StepNav
+                onNext={async () => {
+                  if (await saveDetails()) setStep(1);
+                }}
+                nextLabel="Save & continue"
+                nextBusy={busy}
+              />
             </form>
           </Card>
         )}
@@ -153,6 +178,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
               storageKey={`gnat.draft.local.${data.id}`}
               save={save}
               onChange={(u) => setUnitCount(u.length)}
+              importPath={base === '/local' ? '/local/units/import' : '/district/units/import'}
             />
             <StepNav onBack={() => setStep(0)} onNext={() => setStep(2)} nextLabel="Review" />
           </Card>
@@ -175,7 +201,11 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
               <ol className="list-decimal space-y-1 pl-6 text-sm">
                 {data.units.map((u, i) => (
                   <li key={i}>
-                    <span className="font-medium text-ink">{u.name}</span> <span className="text-ink-3">· {u.category}</span>
+                    <span className="font-medium text-ink">{u.name}</span>{' '}
+                    <span className="text-ink-3">
+                      · {u.category}
+                      {u.gpsAddress && <GpsTag gps={u.gpsAddress} />}
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -197,7 +227,13 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
               nextIcon={Send}
               nextBusy={busy}
               nextDisabled={!detailsDone || !data.units.length}
-              extra={!editable && data.status === 'submitted' ? <Button variant="secondary" onClick={reopen}>Reopen</Button> : undefined}
+              extra={
+                !editable && data.status === 'submitted' ? (
+                  <Button variant="secondary" onClick={reopen}>
+                    Reopen
+                  </Button>
+                ) : undefined
+              }
             />
           </Card>
         )}
