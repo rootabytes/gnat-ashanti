@@ -47,7 +47,7 @@ after(async () => {
 test('full secretary → admin flow', async () => {
   const meta = await api('GET', '/meta');
   assert.equal(meta.status, 200);
-  assert.equal(meta.data.categories.length, 11);
+  assert.equal(meta.data.categories.length, 14);
   const ash = meta.data.regions.find((r: any) => r.code === 'ASH');
   assert.ok(ash, 'Ashanti active');
   const pds = (await api('GET', `/regions/${ash.id}/political-districts`)).data;
@@ -285,6 +285,9 @@ test('workplace import from CSV and the Excel template', async () => {
     'Kejetia M/A Primary,Nope,not-gps',
     'kejetia m/a primary,,',
     'Metro Office,Education Admin,',
+    'Kumasi Academy,Senior High School,',
+    'Kumasi Technical Institute,TVET,',
+    'Kumasi High Technical,shts,',
   ].join('\r\n');
   const r = await upload('/local/units/import', csv, lt);
   assert.equal(r.status, 200, JSON.stringify(r.data));
@@ -292,6 +295,9 @@ test('workplace import from CSV and the Excel template', async () => {
     { name: 'Kejetia Islamic JHS, Block A', category: 'Basic Units', gpsAddress: 'AK-039-5028' },
     { name: 'Kejetia M/A Primary', category: null, gpsAddress: null },
     { name: 'Metro Office', category: 'Education Administration Units', gpsAddress: null },
+    { name: 'Kumasi Academy', category: 'SHS', gpsAddress: null },
+    { name: 'Kumasi Technical Institute', category: 'TVET', gpsAddress: null },
+    { name: 'Kumasi High Technical', category: 'SHTS', gpsAddress: null },
   ]);
   assert.equal(r.data.notes.length, 3, 'duplicate, category and GPS notes');
   assert.equal((await api('GET', '/local/me', undefined, lt)).data.units.length, 0, 'import only parses');

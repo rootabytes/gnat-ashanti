@@ -104,7 +104,7 @@ export function CategoryChart({ data }: { data: { category: string; label: strin
   return (
     <ChartCard
       title="Workplaces by category"
-      subtitle={`${total} workplace${total === 1 ? '' : 's'} across the 11 categories`}
+      subtitle={`${total} workplace${total === 1 ? '' : 's'} across the ${data.length} categories`}
       chart={
         <div style={{ height: data.length * 34 + 20 }}>
           <ResponsiveContainer>

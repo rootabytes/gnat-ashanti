@@ -3,7 +3,7 @@
 A web system for the Ghana National Association of Teachers (GNAT) to map its structure: **Region → GNAT Districts → GNAT Locals → Basic Units / Workplaces**. It follows the _GNAT Mapping Activity_ form (v1.0).
 
 - **District Secretaries** register their district, select the political administrative districts it covers (01), and list its locals (02).
-- **Local Secretaries** get a code per local (sent on WhatsApp by their District Secretary) and list the workplaces in their local (03), each tagged with one of the 11 workplace categories.
+- **Local Secretaries** get a code per local (sent on WhatsApp by their District Secretary) and list the workplaces in their local (03), each tagged with one of the 14 workplace categories.
 - **Regional Secretary** (admin) tracks progress, reviews, approves or returns submissions, sees charts, and downloads Excel, CSV or PDF.
 
 Built and operated by [Rootabytes](https://rootabytes.com), which is registered with the Data Protection Commission of Ghana. Every page carries a "Built by Rootabytes" credit and links to the privacy notice (`/privacy`) and the About page (`/about`). The system is free to GNAT Ashanti: Rootabytes builds, hosts and supports it as its in-kind contribution to the Classpiler partnership, for as long as the partnership continues, as the About page states (`IN_KIND` in `frontend/src/lib/org.ts`; no amount or end date is published).
@@ -54,7 +54,7 @@ On a laptop, WhatsApp buttons open WhatsApp Web or Desktop; SMS buttons need a p
 ```
 backend/    Node 20+ · Express 5 · TypeScript · PostgreSQL (pg) · zod · ExcelJS · PDFKit
   src/schema.ts      migrations (run automatically at start)
-  src/reference.ts   GNAT regions, 43 Ashanti MMDAs, 11 workplace categories
+  src/reference.ts   GNAT regions, 43 Ashanti MMDAs, 14 workplace categories
   src/routes/        public · district · local · admin
   src/analytics.ts   dashboard queries
   src/exports.ts     Excel / CSV / PDF

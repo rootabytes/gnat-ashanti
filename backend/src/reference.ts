@@ -2,6 +2,9 @@
 
 export const WORKPLACE_CATEGORIES = [
   'Basic Units',
+  'SHS',
+  'SHTS',
+  'TVET',
   'Management Units',
   'Education Administration Units',
   'Religious Mission Administrations',
@@ -18,6 +21,9 @@ export type WorkplaceCategory = (typeof WORKPLACE_CATEGORIES)[number];
 
 export const CATEGORY_LABELS: Record<WorkplaceCategory, string> = {
   'Basic Units': 'Basic Units',
+  SHS: 'SHS (Senior High School)',
+  SHTS: 'SHTS (Senior High Technical School)',
+  TVET: 'TVET (Technical and Vocational Education and Training)',
   'Management Units': 'Management Units',
   'Education Administration Units': 'Education Administration Units',
   'Religious Mission Administrations': 'Religious Mission Administrations',

@@ -20,6 +20,9 @@ const CATEGORY_KEYS = new Map<string, WorkplaceCategory>();
 for (const c of WORKPLACE_CATEGORIES) {
   CATEGORY_KEYS.set(norm(c), c);
   CATEGORY_KEYS.set(norm(CATEGORY_LABELS[c]), c);
+  // "Senior High School" → SHS, "National Teaching Council" → NTC
+  const full = /\((.+)\)$/.exec(CATEGORY_LABELS[c])?.[1];
+  if (full) CATEGORY_KEYS.set(norm(full), c);
 }
 
 export function matchCategory(input: string): WorkplaceCategory | null {
