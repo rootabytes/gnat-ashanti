@@ -57,32 +57,41 @@ adminRouter.use(requireRole('admin'));
 
 const admin = (req: any) => req.session as { adminId: number; regionId: number | null; name: string };
 
-/** Admins tied to a region only ever see that region; regional-level admins pick one with ?regionId. */
+/**
+ * What the regions collect (districts, locals, workplaces, chairmen's names and phones, codes,
+ * exports, the regional activity log) is for that region's admins only. The super admin runs the
+ * system and manages admins, and is not cleared to see it: every regional route goes through one
+ * of these three checks, which refuse an admin without a region.
+ */
+const REGIONAL_ONLY = 'Regional data is for regional admins only. The super admin manages admins and the system.';
+
+function regionalAdmin(req: any): number {
+  const id = admin(req).regionId;
+  if (!id) throw new HttpError(403, REGIONAL_ONLY);
+  return id;
+}
+
+/** The signed-in regional admin's own region. */
 async function region(req: any): Promise<{ id: number; name: string; code: string }> {
-  const a = admin(req);
-  const requested = req.query.regionId ? Number(req.query.regionId) : null;
-  const id = a.regionId ?? requested;
-  const r = id
-    ? await one('SELECT id, name, code FROM regions WHERE id = $1', [id])
-    : await one(`SELECT id, name, code FROM regions WHERE active ORDER BY (code = 'ASH') DESC, name LIMIT 1`);
+  const r = await one('SELECT id, name, code FROM regions WHERE id = $1', [regionalAdmin(req)]);
   if (!r) throw new HttpError(404, 'Region not found');
   return r;
 }
 
 async function districtInScope(req: any, id: number) {
-  const a = admin(req);
+  const regionId = regionalAdmin(req);
   const d = await one('SELECT id, region_id, name FROM districts WHERE id = $1', [id]);
-  if (!d || (a.regionId && d.region_id !== a.regionId)) throw new HttpError(404, 'District not found');
+  if (!d || d.region_id !== regionId) throw new HttpError(404, 'District not found');
   return d;
 }
 
 async function localInScope(req: any, id: number) {
-  const a = admin(req);
+  const regionId = regionalAdmin(req);
   const l = await one(
     'SELECT l.id, l.name, l.district_id, d.region_id FROM locals l JOIN districts d ON d.id = l.district_id WHERE l.id = $1',
     [id],
   );
-  if (!l || (a.regionId && l.region_id !== a.regionId)) throw new HttpError(404, 'Local not found');
+  if (!l || l.region_id !== regionId) throw new HttpError(404, 'Local not found');
   return l;
 }
 
@@ -91,9 +100,11 @@ const isDemoAdmin = (a: { email: string | null }) => config.demoMode && !!a.emai
 
 adminRouter.get('/me', async (req, res) => {
   const a = await one(`SELECT ${ADMIN_FIELDS} FROM admins WHERE id = $1`, [admin(req).adminId]);
+  // The super admin sees which regions exist and are open, not their settings.
   const regions = await query(
-    `SELECT id, name, code, active, political_regions, registration_key FROM regions
-     ${a.region_id ? 'WHERE id = $1' : ''} ORDER BY active DESC, name`,
+    a.region_id
+      ? `SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1`
+      : `SELECT id, name, code, active FROM regions ORDER BY active DESC, name`,
     a.region_id ? [a.region_id] : [],
   );
   res.json({ ...a, demo: isDemoAdmin(a), regions });
@@ -367,6 +378,9 @@ adminRouter.patch('/regions/:id', async (req, res) => {
   if (a.regionId && a.regionId !== id) throw new HttpError(404, 'Region not found');
   const b = parse(regionSchema, req.body);
   if (b.active !== undefined && a.regionId) throw new HttpError(403, 'Only the super admin can open or close regions.');
+  // The super admin opens and closes regions; each region's own settings are its admins'.
+  if (!a.regionId && (b.registrationKey !== undefined || b.politicalRegions !== undefined)) throw new HttpError(403, REGIONAL_ONLY);
+  if (!(await one('SELECT id FROM regions WHERE id = $1', [id]))) throw new HttpError(404, 'Region not found');
   await query(
     `UPDATE regions SET registration_key = CASE WHEN $2::boolean THEN $3 ELSE registration_key END,
        active = COALESCE($4, active), political_regions = COALESCE($5, political_regions) WHERE id = $1`,
@@ -378,7 +392,14 @@ adminRouter.patch('/regions/:id', async (req, res) => {
     { type: 'region', id, regionId: id },
     { ...b, registrationKey: b.registrationKey ? '(set)' : b.registrationKey },
   );
-  res.json(await one('SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1', [id]));
+  res.json(
+    await one(
+      a.regionId
+        ? 'SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1'
+        : 'SELECT id, name, code, active FROM regions WHERE id = $1',
+      [id],
+    ),
+  );
 });
 
 adminRouter.get('/political-districts', async (req, res) => {
@@ -498,6 +519,60 @@ adminRouter.delete('/admins/:id', async (req, res) => {
   if (!row) throw new HttpError(404, 'Admin not found');
   await audit(req, 'admin.remove', { type: 'admin', id, regionId: row.region_id }, { name: row.name });
   res.json({ ok: true });
+});
+
+// ----- the super admin's own views: the system and admin activity, never regional data -----
+
+const startedAt = new Date();
+
+/** Is everything working: database, version, regions open, admin accounts. No regional data. */
+adminRouter.get('/system', async (req, res) => {
+  requireSuper(req);
+  const t0 = Date.now();
+  let database: { ok: boolean; latencyMs: number };
+  try {
+    await query('SELECT 1');
+    database = { ok: true, latencyMs: Date.now() - t0 };
+  } catch {
+    database = { ok: false, latencyMs: Date.now() - t0 };
+  }
+  const regions = await query(
+    `SELECT r.id, r.name, r.code, r.active, count(a.id)::int AS admins
+       FROM regions r LEFT JOIN admins a ON a.region_id = r.id
+      GROUP BY r.id ORDER BY r.active DESC, r.name`,
+  );
+  const accounts = await one(
+    `SELECT count(*)::int AS total,
+            count(*) FILTER (WHERE must_change_password AND (password_expires_at IS NULL OR password_expires_at > now()))::int AS awaiting_setup,
+            count(*) FILTER (WHERE must_change_password AND password_expires_at <= now())::int AS expired_invites,
+            count(*) FILTER (WHERE last_login_at > now() - interval '7 days')::int AS active_this_week
+       FROM admins`,
+  );
+  res.json({
+    database,
+    version: (process.env.RAILWAY_GIT_COMMIT_SHA ?? '').slice(0, 7) || null,
+    startedAt,
+    serverTime: new Date(),
+    demo: config.demoMode,
+    regions,
+    admins: accounts,
+  });
+});
+
+/** The super admin's activity: their own actions and every admin account event (sign-ins, set-up, passwords). */
+adminRouter.get('/activity', async (req, res) => {
+  requireSuper(req);
+  const limit = Math.min(500, Number(req.query.limit) || 200);
+  res.json(
+    await query(
+      `SELECT a.id, a.actor_label, a.action, a.entity_type, a.entity_id, a.created_at, r.name AS region_name,
+              CASE WHEN a.entity_type = 'admin' THEN a.detail END AS detail
+         FROM audit_log a LEFT JOIN regions r ON r.id = a.region_id
+        WHERE a.entity_type = 'admin' OR (a.actor_type = 'admin' AND a.actor_id = $1 AND a.entity_type IN ('admin', 'region'))
+        ORDER BY a.created_at DESC LIMIT $2`,
+      [admin(req).adminId, limit],
+    ),
+  );
 });
 
 // ----- exports -----

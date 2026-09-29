@@ -155,7 +155,11 @@ export function AccountCard() {
   return (
     <Card
       title="Your account"
-      subtitle={me.region_id === null ? 'Super admin: every region, and manages admins.' : `Admin for the ${me.regions[0]?.name} Region.`}
+      subtitle={
+        me.region_id === null
+          ? 'Super admin: manages admins and the system. No access to regional data.'
+          : `Admin for the ${me.regions[0]?.name} Region.`
+      }
     >
       <form
         className="grid max-w-md gap-3"
@@ -265,7 +269,7 @@ export function AdminsCard() {
   return (
     <Card
       title="Admins"
-      subtitle="People who can open this dashboard. A regional admin sees only their region; the super admin sees every region."
+      subtitle="People who can open this dashboard. A regional admin sees and manages only their region's data. The super admin manages admins and the system, and sees no regional data."
     >
       {rows && (
         <ul className="mb-5 divide-y divide-line rounded-lg border border-line">
@@ -391,7 +395,7 @@ export function AdminsCard() {
                 {r.name} Region only
               </option>
             ))}
-            <option value="">Every region (super admin)</option>
+            <option value="">Super admin (admins and system, no regional data)</option>
           </Select>
         </div>
         <Button type="submit" className="self-end justify-self-start" busy={busy}>
@@ -408,7 +412,7 @@ export function AdminsCard() {
 /** Shown once: the temporary password, ready to send from the super admin's own WhatsApp or SMS. */
 function SendSignIn({ issued, onClose }: { issued: Issued | null; onClose: () => void }) {
   if (!issued) return null;
-  const access = issued.region_name ? `${issued.region_name} Region` : 'every region (super admin)';
+  const access = issued.region_name ? `${issued.region_name} Region` : 'the system (super admin)';
   const msg = adminInviteMessage(issued.name, access, issued.phone, issued.tempPassword);
   return (
     <Modal

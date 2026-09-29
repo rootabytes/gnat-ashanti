@@ -22,8 +22,6 @@ interface Op {
 }
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const region = { regionId: 'Region to act on (super admin only; regional admins are fixed to theirs).' };
-
 const op = (method: Op['method'], path: string, auth: Auth, summary: string, extra: Partial<Op> = {}): Op => ({
   method,
   path,
@@ -72,12 +70,12 @@ export const OPERATIONS: Op[] = [
   op('patch', '/api/admin/me', 'admin', 'Update your own name, email and phone (returns a fresh token)', {
     body: adminRoutes.profileSchema,
   }),
-  op('get', '/api/admin/overview', 'admin', 'Dashboard figures', { query: region }),
-  op('get', '/api/admin/duplicates', 'admin', 'Workplaces listed under more than one local', { query: region }),
-  op('get', '/api/admin/tree', 'admin', 'Region → districts → locals → workplaces', { query: region }),
+  op('get', '/api/admin/overview', 'admin', 'Dashboard figures'),
+  op('get', '/api/admin/duplicates', 'admin', 'Workplaces listed under more than one local'),
+  op('get', '/api/admin/tree', 'admin', 'Region → districts → locals → workplaces'),
   op('get', '/api/admin/districts/{id}', 'admin', 'A district with codes and workplaces'),
   op('get', '/api/admin/locals/{id}', 'admin', 'A local with its code and workplaces'),
-  op('post', '/api/admin/districts', 'admin', 'Create a district', { body: adminRoutes.createDistrictSchema, query: region }),
+  op('post', '/api/admin/districts', 'admin', 'Create a district', { body: adminRoutes.createDistrictSchema }),
   op('patch', '/api/admin/districts/{id}', 'admin', 'Edit a district', { body: adminRoutes.editDistrictSchema }),
   op('delete', '/api/admin/districts/{id}', 'admin', 'Delete a district and everything under it'),
   op('post', '/api/admin/districts/{id}/status', 'admin', 'Approve, return (with a note) or reopen a district', {
@@ -90,28 +88,36 @@ export const OPERATIONS: Op[] = [
   op('delete', '/api/admin/locals/{id}', 'admin', 'Delete a local'),
   op('post', '/api/admin/districts/{id}/reset-code', 'admin', 'Give a district a new code'),
   op('post', '/api/admin/locals/{id}/reset-code', 'admin', 'Give a local a new code'),
-  op('get', '/api/admin/codes', 'admin', 'Every access code in the region', { query: region }),
-  op('get', '/api/admin/audit', 'admin', 'Activity log', { query: { ...region, limit: 'Rows to return (at most 500).' } }),
+  op('get', '/api/admin/codes', 'admin', 'Every access code in the region'),
+  op('get', '/api/admin/audit', 'admin', 'Activity log', { query: { limit: 'Rows to return (at most 500).' } }),
   op('patch', '/api/admin/regions/{id}', 'admin', 'Registration key, open/close, political regions', { body: adminRoutes.regionSchema }),
-  op('get', '/api/admin/political-districts', 'admin', "The region's political districts", { query: region }),
+  op('get', '/api/admin/political-districts', 'admin', "The region's political districts"),
   op('post', '/api/admin/political-districts', 'admin', 'Add a political district', {
     body: adminRoutes.politicalDistrictSchema,
-    query: region,
   }),
-  op('delete', '/api/admin/political-districts/{id}', 'admin', 'Delete an unused political district', { query: region }),
+  op('delete', '/api/admin/political-districts/{id}', 'admin', 'Delete an unused political district'),
   op('post', '/api/admin/password', 'admin', 'Change your password', { body: adminRoutes.passwordSchema }),
+  op(
+    'get',
+    '/api/admin/system',
+    'admin',
+    'System status: database, version, regions open, admin accounts (super admin only; no regional data)',
+  ),
+  op('get', '/api/admin/activity', 'admin', "The super admin's own actions and admin account events (super admin only)", {
+    query: { limit: 'Rows to return (at most 500).' },
+  }),
   op('get', '/api/admin/admins', 'admin', 'List admins (super admin only)'),
   op('post', '/api/admin/admins', 'admin', 'Add an admin; returns a temporary password to send them (super admin only)', {
     body: adminRoutes.createAdminSchema,
   }),
   op('post', '/api/admin/admins/{id}/reset-password', 'admin', 'Issue a new temporary password (super admin only)'),
   op('delete', '/api/admin/admins/{id}', 'admin', 'Remove an admin (super admin only)'),
-  op('get', '/api/admin/export.xlsx', 'admin', 'Excel workbook of the region', { produces: XLSX, query: region }),
+  op('get', '/api/admin/export.xlsx', 'admin', 'Excel workbook of the region', { produces: XLSX }),
   op('get', '/api/admin/export.csv', 'admin', 'CSV of districts, locals or workplaces', {
     produces: 'text/csv',
-    query: { ...region, level: 'districts, locals or units (default).' },
+    query: { level: 'districts, locals or units (default).' },
   }),
-  op('get', '/api/admin/report.pdf', 'admin', 'PDF report of the region', { produces: 'application/pdf', query: region }),
+  op('get', '/api/admin/report.pdf', 'admin', 'PDF report of the region', { produces: 'application/pdf' }),
 
   op('get', '/api/demo', 'none', 'Demo site only: sign-in details for every demo role'),
   op('post', '/api/demo/reset', 'none', 'Demo site only: restore the demo data'),

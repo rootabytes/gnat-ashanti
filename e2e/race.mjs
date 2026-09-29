@@ -6,11 +6,11 @@ const api = (p, o = {}) =>
   fetch('http://localhost:4000/api' + p, { ...o, headers: { 'content-type': 'application/json', ...(o.headers ?? {}) } }).then((r) =>
     r.json(),
   );
-// A chairman of Ayalolo (created by flow.mjs) signs in via the admin code list.
-// flow.mjs replaced the temporary admin password with this one.
+// A chairman of Ayalolo (created by flow.mjs) signs in via the Regional Secretary's code list.
+// flow.mjs added the Regional Secretary with this email and password.
 const { token: at } = await api('/admin/login', {
   method: 'POST',
-  body: JSON.stringify({ email: 'secretary@gnatashanti.org', password: 'GnatAshanti-2026!' }),
+  body: JSON.stringify({ login: 'regional@gnatashanti.org', password: 'Regional-2026!' }),
 });
 const codes = await api('/admin/codes', { headers: { authorization: 'Bearer ' + at } });
 const code = codes.find((c) => c.name === 'Ayalolo').code;

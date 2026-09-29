@@ -53,27 +53,39 @@ test('full chairman → admin flow', async () => {
   const pds = (await api('GET', `/regions/${ash.id}/political-districts`)).data;
   assert.equal(pds.length, 43);
 
-  // admin sets a registration key
+  // the super admin signs in with the seeded temporary password
   const login = await api('POST', '/admin/login', { email: 'Secretary@example.com', password: 'correct-horse-battery' });
   assert.equal(login.status, 200);
-  const at = login.data.token;
+  const sa = login.data.token;
   assert.equal((await api('POST', '/admin/login', { email: 'secretary@example.com', password: 'nope' })).status, 401);
 
   // the seeded password is temporary: nothing but /me and /password until it is changed
   assert.equal(login.data.mustChangePassword, true);
-  assert.equal((await api('GET', '/admin/overview', undefined, at)).status, 403);
-  assert.equal((await api('GET', '/admin/me', undefined, at)).data.must_change_password, true);
+  assert.equal((await api('GET', '/admin/admins', undefined, sa)).status, 403);
+  assert.equal((await api('GET', '/admin/me', undefined, sa)).data.must_change_password, true);
   assert.equal(
-    (await api('POST', '/admin/password', { current: 'correct-horse-battery', next: 'correct-horse-battery' }, at)).status,
+    (await api('POST', '/admin/password', { current: 'correct-horse-battery', next: 'correct-horse-battery' }, sa)).status,
     400,
     'must differ',
   );
-  assert.equal((await api('POST', '/admin/password', { current: 'correct-horse-battery', next: 'a-brand-new-password' }, at)).status, 200);
-  assert.equal((await api('GET', '/admin/overview', undefined, at)).status, 200);
+  assert.equal((await api('POST', '/admin/password', { current: 'correct-horse-battery', next: 'a-brand-new-password' }, sa)).status, 200);
+  assert.equal((await api('GET', '/admin/admins', undefined, sa)).status, 200);
   assert.equal(
     (await api('POST', '/admin/login', { email: 'secretary@example.com', password: 'a-brand-new-password' })).data.mustChangePassword,
     false,
   );
+
+  // the super admin is not cleared for regional data, so adds the Regional Secretary, who does the regional work
+  assert.equal((await api('GET', '/admin/overview', undefined, sa)).status, 403);
+  const invite = await api('POST', '/admin/admins', { name: 'Regional Secretary', phone: '024 600 0001', regionId: ash.id }, sa);
+  assert.equal(invite.status, 201, JSON.stringify(invite.data));
+  let at = (await api('POST', '/admin/login', { login: '0246000001', password: invite.data.tempPassword })).data.token;
+  at = (await api('PATCH', '/admin/me', { email: 'regional@example.com' }, at)).data.token;
+  assert.equal(
+    (await api('POST', '/admin/password', { current: invite.data.tempPassword, next: 'regional-own-password' }, at)).status,
+    200,
+  );
+  assert.equal((await api('GET', '/admin/overview', undefined, at)).status, 200);
   assert.equal((await api('PATCH', `/admin/regions/${ash.id}`, { registrationKey: 'torch2026' }, at)).status, 200);
 
   // registration requires key
@@ -360,6 +372,70 @@ test('super admin adds an admin who signs in by phone, then adds their email and
   assert.equal((await api('DELETE', `/admin/admins/${me.id}`, undefined, sa)).status, 400);
   assert.equal((await api('DELETE', `/admin/admins/${add.data.id}`, undefined, sa)).status, 200);
   assert.equal((await api('POST', '/admin/login', { login: '0247778888', password: reset.data.tempPassword })).status, 401);
+});
+
+test('the super admin manages admins and sees the system, but never regional data', async () => {
+  const sa = (await api('POST', '/admin/login', { login: 'secretary@example.com', password: 'a-brand-new-password' })).data.token;
+  const ash = (await api('GET', '/meta')).data.regions[0];
+  const rt = (await api('POST', '/admin/login', { login: 'regional@example.com', password: 'regional-own-password' })).data.token;
+  const districtId = (await pool.query('SELECT id FROM districts WHERE region_id = $1 LIMIT 1', [ash.id])).rows[0].id;
+  const localId = (await pool.query('SELECT l.id FROM locals l JOIN districts d ON d.id = l.district_id LIMIT 1')).rows[0].id;
+
+  const regional: [string, string, unknown?][] = [
+    ['GET', '/admin/overview'],
+    ['GET', '/admin/duplicates'],
+    ['GET', '/admin/tree'],
+    ['GET', '/admin/codes'],
+    ['GET', '/admin/audit'],
+    ['GET', `/admin/districts/${districtId}`],
+    ['GET', `/admin/locals/${localId}`],
+    ['POST', '/admin/districts', { name: 'Sneaky' }],
+    ['POST', `/admin/districts/${districtId}/status`, { status: 'approved' }],
+    ['POST', `/admin/districts/${districtId}/reset-code`],
+    ['DELETE', `/admin/locals/${localId}`],
+    ['GET', '/admin/political-districts'],
+    ['GET', '/admin/export.xlsx'],
+    ['GET', '/admin/export.csv?level=units'],
+    ['GET', '/admin/report.pdf'],
+    ['PATCH', `/admin/regions/${ash.id}`, { registrationKey: 'mine' }],
+  ];
+  for (const [method, path, body] of regional) {
+    const r = await api(method, `${path}${path.includes('?') ? '&' : '?'}regionId=${ash.id}`, body, sa);
+    assert.equal(r.status, 403, `${method} ${path} must be refused to the super admin`);
+    if (method === 'GET')
+      assert.equal((await api('GET', path, undefined, rt)).status, 200, `${path} still works for the Regional Secretary`);
+  }
+
+  // /me shows the regions but not their settings
+  const me = (await api('GET', '/admin/me', undefined, sa)).data;
+  assert.equal(me.region_id, null);
+  assert.ok(me.regions.length >= 10);
+  assert.equal(me.regions[0].registration_key, undefined);
+
+  // system status: working parts and accounts, nothing collected by the regions
+  const sys = await api('GET', '/admin/system', undefined, sa);
+  assert.equal(sys.status, 200);
+  assert.equal(sys.data.database.ok, true);
+  assert.ok(sys.data.admins.total >= 2);
+  assert.equal(sys.data.regions.find((r: any) => r.code === 'ASH').admins >= 1, true);
+  const text = JSON.stringify(sys.data);
+  for (const leak of ['Kumasi Metro', 'Adum', 'Kofi Mensah', '+233241234567', 'Presby'])
+    assert.ok(!text.includes(leak), `system status leaks ${leak}`);
+
+  // activity: admin account events and the super admin's own actions, not the regions' work
+  const act = await api('GET', '/admin/activity', undefined, sa);
+  assert.equal(act.status, 200);
+  const actions = act.data.map((a: any) => a.action);
+  assert.ok(actions.includes('admin.create'));
+  assert.ok(actions.includes('admin.login'));
+  assert.ok(!actions.some((a: string) => /^(district|local|export|political)\./.test(a)), 'no regional events');
+  assert.ok(!JSON.stringify(act.data).includes('Kumasi Metro'));
+
+  // regional admins can't use the super admin's views; the super admin can still open or close a region
+  assert.equal((await api('GET', '/admin/system', undefined, rt)).status, 403);
+  assert.equal((await api('GET', '/admin/activity', undefined, rt)).status, 403);
+  assert.equal((await api('PATCH', `/admin/regions/${ash.id}`, { active: true }, sa)).status, 200);
+  assert.equal((await api('PATCH', `/admin/regions/${ash.id}`, { active: false }, rt)).status, 403);
 });
 
 test('demo guard: no demo routes, and demo mode refuses a database with real data', async () => {

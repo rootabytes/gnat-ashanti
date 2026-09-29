@@ -13,7 +13,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --test-concurrency=1 test/*.test.ts",
-    "guides": "tsx scripts/guides.ts"
+    "guides": "tsx scripts/guides.ts",
+    "loadtest": "tsx scripts/loadtest.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

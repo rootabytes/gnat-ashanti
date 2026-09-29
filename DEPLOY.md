@@ -35,13 +35,14 @@ Allow about 40 minutes for everything. Do the steps in order: the website needs 
    ```
 
    - `JWT_SECRET` must **never change** after launch. It also encrypts the stored access codes. If `${{secret(64)}}` isn't accepted, paste any random 64-character string.
-   - `ADMIN_EMAIL` becomes the **super admin**: every region, and the only one who can add or remove admins.
+   - `ADMIN_EMAIL` becomes the **super admin**: adds and removes admins, opens regions and watches the system. The super admin does **not** see regional data; each region's admins do.
    - `ADMIN_PASSWORD` is temporary. The first sign-in only opens a "Set up your account" screen, so the password in Railway stops working as soon as it is used.
 
 5. **Settings → Networking → Generate Domain**. Copy the address, e.g. `https://gnat-ashanti-production.up.railway.app`.
 6. Open `https://<that address>/api/health`. You should see `{"ok":true}`.
    The tables, the 43 Ashanti districts and the admin account are created on first start.
 7. **Postgres service → Backups**: turn on daily backups.
+8. **API service → Settings → Deploy → Serverless**: keep it **off**, so the API never sleeps and the first chairman after a quiet night doesn't wait for it to wake up.
 
 ## 2. Cloudflare Worker: the website
 

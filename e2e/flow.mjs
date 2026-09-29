@@ -17,8 +17,11 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png`, fullPage: true })
 // The API starts with ADMIN_PASSWORD=Secretary2026! (see README); the first sign-in replaces it.
 const TEMP_PASSWORD = 'Secretary2026!';
 const PASSWORD = 'GnatAshanti-2026!';
+// The Regional Secretary's account, added by the super admin below (a11y.mjs and race.mjs use it too).
+const REGIONAL_EMAIL = 'regional@gnatashanti.org';
+const REGIONAL_PASSWORD = 'Regional-2026!';
 
-// 1. Admin sets a registration key
+// 1. The super admin (the seeded account) sets up, sees only the system, and adds the Regional Secretary
 const adminCtx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
 const admin = await adminCtx.newPage();
 watch(admin, 'admin');
@@ -33,14 +36,14 @@ await admin.getByLabel('Temporary password', { exact: true }).fill(TEMP_PASSWORD
 await admin.getByLabel('New password', { exact: true }).fill(PASSWORD);
 await admin.getByLabel('New password again', { exact: true }).fill(PASSWORD);
 await admin.getByRole('button', { name: 'Save and continue' }).click();
-await admin.getByText('Ashanti Region overview').waitFor();
+await admin.getByText('Everything is working').waitFor();
 // First time in: the super admin guide walks through every step and ends with its PDF.
 {
   const guide = admin.getByRole('dialog', { name: 'Super Admin guide' });
   await guide.getByRole('button', { name: 'Show me' }).click();
   while (await guide.getByRole('button', { name: 'Next' }).isVisible()) await guide.getByRole('button', { name: 'Next' }).click();
   await shot(admin, '00b-admin-guide-end');
-  for (const name of ['Printable guide (PDF)', 'Regional Secretary guide (PDF)']) {
+  for (const name of ['Printable guide (PDF)']) {
     const href = await guide.getByRole('link', { name }).getAttribute('href');
     const res = await fetch(`${WEB}${href}`);
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('pdf')) errors.push(`guide: ${href} did not return a PDF`);
@@ -48,14 +51,29 @@ await admin.getByText('Ashanti Region overview').waitFor();
   await guide.getByRole('button', { name: 'Get started' }).click();
   await guide.waitFor({ state: 'hidden' });
   await admin.reload();
-  await admin.getByText('Ashanti Region overview').waitFor();
+  await admin.getByText('Everything is working').waitFor();
   if (await guide.isVisible()) errors.push('guide: opened again after it was closed');
   console.log('✓ super admin guide on first sign-in, with working PDFs, only once');
 }
+await shot(admin, '00c-super-system');
+// The super admin is not cleared for regional data: no regional pages, and the API refuses it.
+for (const name of ['Districts', 'Structure', 'Access codes', 'Downloads']) {
+  if (await admin.getByRole('link', { name, exact: true }).count()) errors.push(`super admin menu shows ${name}`);
+}
+await admin.goto(`${WEB}/admin/downloads`);
+await admin.getByText('Everything is working').waitFor();
+{
+  const token = JSON.parse(await admin.evaluate(() => localStorage.getItem('gnat.admin'))).token;
+  for (const path of ['/admin/tree', '/admin/codes', '/admin/export.xlsx', '/admin/report.pdf']) {
+    const r = await fetch(`http://localhost:4000/api${path}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.status !== 403) errors.push(`super admin got ${r.status} from ${path}, expected 403`);
+  }
+}
+console.log('✓ super admin sees the system, not regional data');
 
-// The super admin adds the Assistant Regional Secretary by WhatsApp number...
-await admin.getByRole('link', { name: 'Settings' }).click();
-await admin.getByLabel('Name', { exact: true }).fill('Assistant Regional Secretary');
+// The super admin adds the Regional Secretary by WhatsApp number...
+await admin.getByRole('link', { name: 'Admins' }).click();
+await admin.getByLabel('Name', { exact: true }).fill('Regional Secretary');
 await admin.getByLabel('WhatsApp number').fill('024 777 8888');
 await admin.getByRole('button', { name: 'Add admin' }).click();
 const invite = admin.getByRole('dialog');
@@ -69,27 +87,41 @@ await shot(admin, '00b-admin-invite');
 await invite.getByRole('button', { name: 'Done' }).click();
 // ...who signs in with that number on his phone, then adds his email and own password.
 const asst = await (await browser.newContext({ ...devices['Pixel 7'] })).newPage();
-watch(asst, 'assistant');
+watch(asst, 'regional-phone');
 await asst.goto(`${WEB}/admin`);
 await asst.getByLabel('Email or phone number').fill('0247778888');
 await asst.getByLabel('Password', { exact: true }).fill(tempPw);
 await asst.getByRole('button', { name: 'Sign in' }).click();
 await asst.getByText('Set up your account').waitFor();
-await asst.getByLabel('Email').fill('assistant@gnatashanti.org');
+await asst.getByLabel('Email').fill(REGIONAL_EMAIL);
 await asst.getByLabel('Temporary password', { exact: true }).fill(tempPw);
-await asst.getByLabel('New password', { exact: true }).fill('Assistant-2026!');
-await asst.getByLabel('New password again', { exact: true }).fill('Assistant-2026!');
+await asst.getByLabel('New password', { exact: true }).fill(REGIONAL_PASSWORD);
+await asst.getByLabel('New password again', { exact: true }).fill(REGIONAL_PASSWORD);
 await asst.getByRole('button', { name: 'Save and continue' }).click();
 await asst.getByText('Ashanti Region overview').waitFor();
 await closeGuide(asst, 'Regional Secretary');
 await asst.context().close();
-console.log('✓ assistant admin added, signed in by phone, set his own email and password');
-await admin.getByRole('link', { name: 'Overview' }).click();
-await admin.getByRole('link', { name: 'Settings' }).click();
-await admin.getByLabel('Registration key').fill('torch2026');
-await admin.getByRole('button', { name: 'Save key' }).click();
-await admin.getByText('Registration key saved').waitFor();
-console.log('✓ admin login + key');
+console.log('✓ Regional Secretary added, signed in by phone, set his own email and password');
+
+// The super admin's Activity shows the new admin signing in.
+await admin.getByRole('link', { name: 'Activity' }).click();
+await admin.getByText('Regional Secretary signed in').first().waitFor();
+console.log('✓ super admin activity shows admin sign-ins');
+
+// The Regional Secretary does the regional work on a laptop, signing in with his email.
+const regional = await (await browser.newContext({ viewport: { width: 1360, height: 900 } })).newPage();
+watch(regional, 'regional');
+await regional.goto(`${WEB}/admin`);
+await regional.getByLabel('Email or phone number').fill(REGIONAL_EMAIL);
+await regional.getByLabel('Password', { exact: true }).fill(REGIONAL_PASSWORD);
+await regional.getByRole('button', { name: 'Sign in' }).click();
+await regional.getByText('Ashanti Region overview').waitFor();
+await closeGuide(regional, 'Regional Secretary');
+await regional.getByRole('link', { name: 'Settings' }).click();
+await regional.getByLabel('Registration key').fill('torch2026');
+await regional.getByRole('button', { name: 'Save key' }).click();
+await regional.getByText('Registration key saved').waitFor();
+console.log('✓ Regional Secretary sets the registration key');
 
 // 2. District chairman registers on a phone
 const phone = await browser.newContext({ ...devices['Pixel 7'] });
@@ -233,39 +265,39 @@ await d.getByText('District submitted. Thank you!').waitFor();
 await shot(d, '09-district-submitted');
 console.log('✓ district submitted');
 
-// 6. Admin reviews
-await admin.getByRole('link', { name: 'Overview' }).click();
-await admin.reload();
-await admin.getByText('waiting for your review').waitFor();
+// 6. The Regional Secretary reviews
+await regional.getByRole('link', { name: 'Overview' }).click();
+await regional.reload();
+await regional.getByText('waiting for your review').waitFor();
 await shot(admin, '10-admin-overview');
-await admin.getByRole('link', { name: 'Districts', exact: true }).click();
-await admin.getByRole('link', { name: 'Review' }).click();
-await admin.getByText('Review actions').waitFor();
-await admin.getByRole('button', { name: 'Expand all' }).click();
+await regional.getByRole('link', { name: 'Districts', exact: true }).click();
+await regional.getByRole('link', { name: 'Review' }).click();
+await regional.getByText('Review actions').waitFor();
+await regional.getByRole('button', { name: 'Expand all' }).click();
 await shot(admin, '11-admin-review');
-await admin.getByRole('button', { name: /Approve district \+/ }).click();
-await admin.getByText('District and locals approved').waitFor();
-await admin.getByRole('link', { name: 'Structure' }).click();
-await admin.getByLabel('Search structure').fill('komfo');
+await regional.getByRole('button', { name: /Approve district \+/ }).click();
+await regional.getByText('District and locals approved').waitFor();
+await regional.getByRole('link', { name: 'Structure' }).click();
+await regional.getByLabel('Search structure').fill('komfo');
 await shot(admin, '12-structure');
-await admin.getByRole('link', { name: 'Downloads' }).click();
+await regional.getByRole('link', { name: 'Downloads' }).click();
 for (const name of ['Download Excel', 'Download PDF']) {
-  const [dl] = await Promise.all([admin.waitForEvent('download'), admin.getByRole('button', { name }).click()]);
+  const [dl] = await Promise.all([regional.waitForEvent('download'), regional.getByRole('button', { name }).click()]);
   await dl.saveAs(`${OUT}/${dl.suggestedFilename()}`);
   console.log('✓ downloaded', dl.suggestedFilename());
 }
-await admin.getByRole('link', { name: 'Access codes' }).click();
-await admin.getByText(dcode).waitFor();
+await regional.getByRole('link', { name: 'Access codes' }).click();
+await regional.getByText(dcode).waitFor();
 console.log('✓ codes page shows district code');
 // code slips for handing out at a meeting (print is stubbed; the print stylesheet is emulated)
-await admin.evaluate(() => {
+await regional.evaluate(() => {
   window.print = () => {};
 });
-await admin.getByRole('button', { name: 'Print code slips' }).click();
-await admin.emulateMedia({ media: 'print' });
-const slips = await admin.getByText('Enter this access code:').count();
+await regional.getByRole('button', { name: 'Print code slips' }).click();
+await regional.emulateMedia({ media: 'print' });
+const slips = await regional.getByText('Enter this access code:').count();
 await shot(admin, '12b-code-slips');
-await admin.emulateMedia({ media: 'screen' });
+await regional.emulateMedia({ media: 'screen' });
 if (slips < 4) errors.push(`expected a slip per code, got ${slips}`);
 console.log(`✓ ${slips} code slips`);
 
@@ -274,11 +306,11 @@ const dark = await browser.newContext({ ...devices['Pixel 7'], colorScheme: 'dar
 const dm = await dark.newPage();
 watch(dm, 'dark');
 await dm.goto(`${WEB}/admin`);
-await dm.getByLabel('Email').fill('secretary@gnatashanti.org');
-await dm.getByLabel('Password', { exact: true }).fill(PASSWORD);
+await dm.getByLabel('Email').fill(REGIONAL_EMAIL);
+await dm.getByLabel('Password', { exact: true }).fill(REGIONAL_PASSWORD);
 await dm.getByRole('button', { name: 'Sign in' }).click();
 await dm.getByText('Ashanti Region overview').waitFor();
-await closeGuide(dm, 'Super Admin');
+await closeGuide(dm, 'Regional Secretary');
 await dm.waitForTimeout(500);
 await shot(dm, '13-admin-mobile-dark');
 const bg = await dm.evaluate(() => getComputedStyle(document.body).backgroundColor);

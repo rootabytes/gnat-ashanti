@@ -12,20 +12,26 @@ import { CATEGORY_LABELS, WORKPLACE_CATEGORIES } from '../reference';
 
 export const publicRouter = Router();
 
-// Generous limits: many teachers in one town can share a mobile carrier IP.
+// Only failures count. Mobile networks and venue WiFi put many phones behind one IP address, so
+// counting every sign-in would turn away the 41st teacher with a correct code (the load test showed
+// it). Wrong codes still hit a wall: a code is 8 random characters (about 10^12 possibilities), so
+// 100 guesses per address per 15 minutes gets nowhere.
 const accessLimiter = rateLimit({
   windowMs: 15 * 60_000,
-  limit: 40,
+  limit: 100,
+  skipSuccessfulRequests: true,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  message: { error: 'Too many attempts. Please wait 15 minutes and try again.' },
+  message: { error: 'Too many wrong codes from this network. Please wait 15 minutes and try again.' },
 });
+// Also failures only, so a room of District Chairmen can all register over one WiFi.
 const registerLimiter = rateLimit({
   windowMs: 60 * 60_000,
-  limit: 15,
+  limit: 30,
+  skipSuccessfulRequests: true,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  message: { error: 'Too many registrations from this network. Please try again later.' },
+  message: { error: 'Too many failed registrations from this network. Please try again later.' },
 });
 
 publicRouter.get('/meta', async (_req, res) => {

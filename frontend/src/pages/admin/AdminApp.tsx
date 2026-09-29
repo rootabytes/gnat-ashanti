@@ -1,5 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Building2, Download, History, KeyRound, LayoutDashboard, LogOut, Network, Settings as SettingsIcon } from 'lucide-react';
+import {
+  Building2,
+  Download,
+  History,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Network,
+  Settings as SettingsIcon,
+  UserRound,
+  Users,
+} from 'lucide-react';
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { BrandBar, Footer } from '../../components/Brand';
 import { Alert, Button, Card, cx, Loading, Select, TextField } from '../../components/ui';
@@ -16,6 +27,7 @@ import { AccountSetup } from './Account';
 import { GuideButton, GuideDialog, useGuide } from '../../components/Guide';
 import Settings from './Settings';
 import Structure from './Structure';
+import { AccountPage, AdminsPage, SuperActivity, SystemPage } from './SuperAdmin';
 
 export interface AdminRegion {
   id: number;
@@ -30,7 +42,7 @@ export interface AdminMe {
   email: string | null;
   phone: string | null;
   name: string;
-  /** null: super admin, who sees every region and manages admins. */
+  /** null: the super admin, who manages admins and the system and sees no regional data. */
   region_id: number | null;
   /** Signed in with a temporary password: must choose their own before anything else. */
   must_change_password: boolean;
@@ -57,6 +69,14 @@ const NAV = [
   { to: '/admin/downloads', label: 'Downloads', icon: Download },
   { to: '/admin/activity', label: 'Activity', icon: History },
   { to: '/admin/settings', label: 'Settings', icon: SettingsIcon },
+];
+
+/** The super admin's menu: no regional pages, because the API refuses them regional data. */
+const SUPER_NAV = [
+  { to: '/admin', label: 'System', end: true, icon: LayoutDashboard },
+  { to: '/admin/admins', label: 'Admins', icon: Users },
+  { to: '/admin/activity', label: 'Activity', icon: History },
+  { to: '/admin/account', label: 'Your account', icon: UserRound },
 ];
 
 export default function AdminApp() {
@@ -137,16 +157,18 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
     );
   }
 
+  const isSuper = me.region_id === null;
+  const menu = isSuper ? SUPER_NAV : NAV;
   return (
     <AdminCtx.Provider value={ctx}>
       <div className="min-h-dvh">
         <GuideDialog role={me.region_id === null ? 'super' : 'admin'} open={guide.open} onClose={guide.close} />
         <BrandBar
-          subtitle={`${region.name} Region · Admin`}
+          subtitle={isSuper ? 'Super admin' : `${region.name} Region · Admin`}
           right={
             <>
               <GuideButton onClick={guide.show} />
-              {me.regions.filter((r) => r.active || r.id === region.id).length > 1 && (
+              {!isSuper && me.regions.filter((r) => r.active || r.id === region.id).length > 1 && (
                 <Select
                   aria-label="Region"
                   className="h-9 w-40 text-sm"
@@ -183,7 +205,7 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             className="no-print relative -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6"
           >
             <ul className="flex gap-1 py-2 lg:sticky lg:top-20 lg:flex-col lg:py-0">
-              {NAV.map((n) => (
+              {menu.map((n) => (
                 <li key={n.to}>
                   <NavLink
                     to={n.to}
@@ -203,17 +225,27 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             </ul>
           </nav>
           <main className="min-w-0 flex-1 py-6" key={region.id}>
-            <Routes>
-              <Route index element={<Overview />} />
-              <Route path="districts" element={<Districts />} />
-              <Route path="districts/:id" element={<DistrictReview />} />
-              <Route path="structure" element={<Structure />} />
-              <Route path="codes" element={<Codes />} />
-              <Route path="downloads" element={<Downloads />} />
-              <Route path="activity" element={<Activity />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/admin" replace />} />
-            </Routes>
+            {isSuper ? (
+              <Routes>
+                <Route index element={<SystemPage />} />
+                <Route path="admins" element={<AdminsPage />} />
+                <Route path="activity" element={<SuperActivity />} />
+                <Route path="account" element={<AccountPage />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+              </Routes>
+            ) : (
+              <Routes>
+                <Route index element={<Overview />} />
+                <Route path="districts" element={<Districts />} />
+                <Route path="districts/:id" element={<DistrictReview />} />
+                <Route path="structure" element={<Structure />} />
+                <Route path="codes" element={<Codes />} />
+                <Route path="downloads" element={<Downloads />} />
+                <Route path="activity" element={<Activity />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+              </Routes>
+            )}
           </main>
         </div>
         <Footer />

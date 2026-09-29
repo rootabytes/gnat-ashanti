@@ -198,9 +198,8 @@ export const GUIDES: Record<GuideRole, Guide> = {
   super: {
     role: 'super',
     name: 'Super Admin',
-    summary: 'You run the system: everything the Regional Secretary does, plus adding and removing admins.',
+    summary: 'You run the system: you add and remove admins and keep everything working. You do not see the data the regions collect.',
     pdf: '/guides/GNAT-Mapping-Guide-Super-Admin.pdf',
-    related: 'admin',
     steps: [
       {
         icon: 'key',
@@ -210,7 +209,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       {
         icon: 'userPlus',
         title: 'Add an admin',
-        body: 'Settings › Admins › Add admin: their name, WhatsApp number and region. The system makes a temporary password.',
+        body: 'Admins › Add admin: their name, WhatsApp number and region. The system makes a temporary password.',
       },
       {
         icon: 'send',
@@ -225,7 +224,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       {
         icon: 'key',
         title: 'Forgotten passwords',
-        body: 'Settings › Admins › New password gives them a fresh temporary password. Send it the same way.',
+        body: 'Admins › New password gives them a fresh temporary password. Send it the same way.',
       },
       {
         icon: 'userMinus',
@@ -234,12 +233,13 @@ export const GUIDES: Record<GuideRole, Guide> = {
       },
       {
         icon: 'track',
-        title: 'Everything else',
-        body: 'You can do everything in the Regional Secretary guide: invite, follow progress, review, codes and downloads.',
+        title: 'Check the system',
+        body: 'System shows whether the database is working, the version running, which regions are open, and admins who have not finished setting up. Activity lists every admin sign-in and change.',
       },
     ],
     tips: [
-      'Keep the super admin account to yourself. Give everyone else a regional admin account.',
+      'Districts, locals, workplaces, chairmen’s details and downloads are only for each region’s admins. The system does not show them to the super admin.',
+      'Open a region under System only when its Regional Secretary has an admin account.',
       'The temporary password in the server settings works only once: after your first sign-in, your own password replaces it.',
     ],
   },

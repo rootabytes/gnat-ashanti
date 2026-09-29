@@ -7,8 +7,11 @@ import { closeGuide } from './guide.mjs';
 
 const WEB = process.env.WEB_URL ?? 'http://localhost:4173';
 const API = process.env.API_URL ?? 'http://localhost:4000/api';
-const EMAIL = 'secretary@gnatashanti.org';
-const PASSWORD = 'GnatAshanti-2026!';
+// The Regional Secretary (added by flow.mjs) sees the regional pages; the super admin sees only the system.
+const EMAIL = 'regional@gnatashanti.org';
+const PASSWORD = 'Regional-2026!';
+const SUPER_EMAIL = 'secretary@gnatashanti.org';
+const SUPER_PASSWORD = 'GnatAshanti-2026!';
 
 const api = (p, o = {}) =>
   fetch(API + p, { ...o, headers: { 'content-type': 'application/json', ...(o.headers ?? {}) } }).then((r) => r.json());
@@ -67,7 +70,7 @@ for (const scheme of ['light', 'dark']) {
   await login.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await login.getByRole('button', { name: 'Sign in' }).click();
   await login.getByText('Region overview').waitFor();
-  await closeGuide(login, 'Super Admin');
+  await closeGuide(login, 'Regional Secretary');
   await login.close();
   for (const [name, path, text] of [
     ['admin overview', '/admin', 'Region overview'],
@@ -78,6 +81,25 @@ for (const scheme of ['light', 'dark']) {
     await audit(desk, `${name}${tag}`, `${WEB}${path}`, (p) => p.getByText(text).first().waitFor());
   }
   await desk.close();
+
+  const superDesk = await browser.newContext({ viewport: { width: 1360, height: 900 }, colorScheme: scheme });
+  const superLogin = await superDesk.newPage();
+  await superLogin.goto(`${WEB}/admin`);
+  await superLogin.getByLabel('Email').fill(SUPER_EMAIL);
+  await superLogin.getByLabel('Password', { exact: true }).fill(SUPER_PASSWORD);
+  await superLogin.getByRole('button', { name: 'Sign in' }).click();
+  await superLogin.getByText('Everything is working').waitFor();
+  await closeGuide(superLogin, 'Super Admin');
+  await superLogin.close();
+  for (const [name, path, text] of [
+    ['super system', '/admin', 'Everything is working'],
+    ['super admins', '/admin/admins', 'Add admin'],
+    ['super activity', '/admin/activity', 'signed in'],
+    ['super account', '/admin/account', 'Change your password'],
+  ]) {
+    await audit(superDesk, `${name}${tag}`, `${WEB}${path}`, (p) => p.getByText(text).first().waitFor());
+  }
+  await superDesk.close();
 }
 
 await browser.close();
