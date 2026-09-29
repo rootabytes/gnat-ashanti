@@ -102,15 +102,15 @@ for (const phone of PHONES) {
     await check(page, phone, path);
   }
 
-  await signIn('Local Chairmen', 'Bantama');
+  await signIn('Local Secretaries', 'Bantama');
   await page.getByRole('heading', { level: 1 }).first().waitFor();
-  await skipGuide('Local Chairman');
-  await check(page, phone, 'local chairman');
+  await skipGuide('Local Secretary');
+  await check(page, phone, 'local secretary');
 
-  await signIn('District Chairmen', 'Kumasi Metro');
+  await signIn('District Secretaries', 'Kumasi Metro');
   await page.getByRole('heading', { level: 1 }).first().waitFor();
-  await skipGuide('District Chairman');
-  await check(page, phone, 'district chairman');
+  await skipGuide('District Secretary');
+  await check(page, phone, 'district secretary');
 
   await signIn('Regional Secretary');
   await page.getByText('Ashanti Region overview').waitFor();

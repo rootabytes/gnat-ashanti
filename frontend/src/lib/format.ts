@@ -32,7 +32,7 @@ export function whatsappLink(text: string, phone?: string | null) {
 
 /**
  * sms: link that opens the sender's own messaging app with the text filled in,
- * for chairmen without WhatsApp. No SMS provider or cost to the system; the
+ * for anyone without WhatsApp. No SMS provider or cost to the system; the
  * sender's normal SMS rate applies. "?&body=" works on both Android and iPhone.
  */
 export function smsLink(text: string, phone?: string | null) {

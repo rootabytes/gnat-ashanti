@@ -131,6 +131,33 @@ districtRouter.delete('/locals/:id', async (req, res) => {
   res.json(await detail(req));
 });
 
+/**
+ * Removes a Local Secretary: their code stops working at once and their name and phone are cleared,
+ * keeping the local's workplaces for a new secretary. A local with no workplaces yet is deleted
+ * instead, while the district is still open to changes.
+ */
+districtRouter.post('/locals/:id/remove-secretary', async (req, res) => {
+  const id = await ownLocal(req);
+  const l = await one<{ name: string; units: number }>(
+    'SELECT l.name, (SELECT count(*)::int FROM basic_units u WHERE u.local_id = l.id) AS units FROM locals l WHERE l.id = $1',
+    [id],
+  );
+  const d = await getDistrictRow(sid(req));
+  if (!l!.units && isEditable(d.status)) {
+    await query('DELETE FROM locals WHERE id = $1', [id]);
+    await audit(req, 'local.delete', { type: 'local', id }, { name: l!.name });
+  } else {
+    const c = newCode('L');
+    await query(
+      `UPDATE locals SET chair_name = NULL, chair_phone = NULL, code_lookup = $2, code_enc = $3,
+         code_version = code_version + 1, updated_at = now() WHERE id = $1`,
+      [id, c.lookup, c.enc],
+    );
+    await audit(req, 'local.remove_secretary', { type: 'local', id }, { name: l!.name });
+  }
+  res.json(await detail(req));
+});
+
 districtRouter.post('/locals/:id/reset-code', async (req, res) => {
   const id = await ownLocal(req);
   const c = newCode('L');
@@ -139,7 +166,7 @@ districtRouter.post('/locals/:id/reset-code', async (req, res) => {
   res.json(await detail(req));
 });
 
-// The district chairman can fill in a local on its chairman's behalf.
+// The District Secretary can fill in a local on its secretary's behalf.
 districtRouter.get('/locals/:id', async (req, res) => {
   res.json(await localDetail(await ownLocal(req), true));
 });

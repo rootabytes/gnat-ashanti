@@ -1,40 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  Alert,
-  Button,
-  Input,
-  Loading,
-  Modal,
-  Select,
-  SmsButton,
-  StatusBadge,
-  TextField,
-  useToast,
-  WhatsAppButton,
-} from '../../components/ui';
+import { Search, UserMinus, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Alert, Button, Input, Loading, Select, SmsButton, StatusBadge, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
 import type { Status } from '../../lib/api';
 import { fmtPhone, smsLink, timeAgo, whatsappLink } from '../../lib/format';
-import type { DistrictDetail } from '../../lib/types';
+import { useRemoveDistrictSecretary } from './AddDistrict';
 import { PageTitle, useAdmin } from './AdminApp';
 import type { OverviewData } from './Overview';
 
 type Row = OverviewData['perDistrict'][number];
 
 export default function Districts() {
-  const { q } = useAdmin();
+  const { q, addDistrict, districtsVersion } = useAdmin();
   const [data, setData] = useState<OverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'' | Status | 'incomplete'>('');
   const [sort, setSort] = useState<'name' | 'updated' | 'progress'>('name');
-  const [adding, setAdding] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     api.admin.get<OverviewData>(q('/admin/overview')).then(setData, (e) => setError(e.message));
-  }, [q]);
+  }, [q, districtsVersion, reload]);
 
   const rows = useMemo(() => {
     if (!data) return [];
@@ -64,9 +52,9 @@ export default function Districts() {
         title="Districts"
         sub="Track, remind and review every GNAT district."
         action={
-          <Button onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Add district
+          <Button size="lg" onClick={addDistrict}>
+            <UserPlus className="h-5 w-5" aria-hidden />
+            Add District Secretary
           </Button>
         }
       />
@@ -75,7 +63,7 @@ export default function Districts() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
           <Input
             className="pl-9"
-            placeholder="Search district or chairman…"
+            placeholder="Search district or secretary…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search"
@@ -101,11 +89,10 @@ export default function Districts() {
       </p>
       <ul className="space-y-2">
         {rows.map((d) => (
-          <DistrictRow key={d.id} d={d} />
+          <DistrictRow key={d.id} d={d} onChanged={() => setReload((n) => n + 1)} />
         ))}
       </ul>
       {!rows.length && <p className="py-10 text-center text-sm text-ink-3">No districts match.</p>}
-      <AddDistrictModal open={adding} onClose={() => setAdding(false)} />
     </div>
   );
 }
@@ -115,9 +102,10 @@ function progress(d: Row) {
   return base + (d.locals ? (d.localsDone / d.locals) * 0.25 : 0);
 }
 
-function DistrictRow({ d }: { d: Row }) {
+function DistrictRow({ d, onChanged }: { d: Row; onChanged: () => void }) {
+  const removeSecretary = useRemoveDistrictSecretary();
   const pct = d.locals ? Math.round((d.localsDone / d.locals) * 100) : 0;
-  const reminder = `Hello ${d.chairName ?? 'Chairman'}, this is a reminder from the GNAT Regional Secretariat to complete the ${d.name} District mapping form. Thank you.`;
+  const reminder = `Hello ${d.chairName ?? 'District Secretary'}, this is a reminder from the GNAT Regional Secretariat to complete the ${d.name} District mapping form. Thank you.`;
   return (
     <li className="rounded-xl border border-line bg-surface p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -127,7 +115,7 @@ function DistrictRow({ d }: { d: Row }) {
           </Link>
           {!d.verified && <span className="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-xs text-ink-3">self-registered</span>}
           <p className="text-sm text-ink-2">
-            {d.chairName ?? 'No chairman'} {d.chairPhone && <span className="text-ink-3">· {fmtPhone(d.chairPhone)}</span>}
+            {d.chairName ?? 'No secretary'} {d.chairPhone && <span className="text-ink-3">· {fmtPhone(d.chairPhone)}</span>}
           </p>
         </div>
         <StatusBadge status={d.status} />
@@ -168,66 +156,28 @@ function DistrictRow({ d }: { d: Row }) {
             <SmsButton href={smsLink(reminder, d.chairPhone)} />
           </>
         )}
+        {d.chairName ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-danger"
+            onClick={async () =>
+              (await removeSecretary({ id: d.id, name: d.name, chairName: d.chairName, locals: d.locals })) && onChanged()
+            }
+          >
+            <UserMinus className="h-4 w-4" aria-hidden />
+            Remove secretary
+          </Button>
+        ) : (
+          <Link
+            to={`/admin/districts/${d.id}?edit=1`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand px-3 text-sm font-semibold text-brand hover:bg-brand-soft"
+          >
+            <UserPlus className="h-4 w-4" aria-hidden />
+            Add secretary
+          </Link>
+        )}
       </div>
     </li>
-  );
-}
-
-function AddDistrictModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { q } = useAdmin();
-  const nav = useNavigate();
-  const toast = useToast();
-  const [f, setF] = useState({ name: '', chairName: '', chairPhone: '' });
-  const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Add a GNAT district"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            busy={busy}
-            disabled={f.name.trim().length < 2}
-            onClick={async () => {
-              setBusy(true);
-              setErr(null);
-              try {
-                const d = await api.admin.post<DistrictDetail>(q('/admin/districts'), {
-                  name: f.name,
-                  chairName: f.chairName || null,
-                  chairPhone: f.chairPhone || null,
-                });
-                toast(`${d.name} added`);
-                nav(`/admin/districts/${d.id}`);
-              } catch (e: any) {
-                setErr(e.message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            Add district
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-3">
-        <p className="text-sm text-ink-2">An access code is created for the district. Send it to the chairman from the district page.</p>
-        <TextField label="GNAT district name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        <TextField label="Chairman (optional)" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
-        <TextField
-          label="Chairman phone (optional)"
-          type="tel"
-          value={f.chairPhone}
-          onChange={(e) => setF({ ...f, chairPhone: e.target.value })}
-        />
-        {err && <Alert tone="error">{err}</Alert>}
-      </div>
-    </Modal>
   );
 }

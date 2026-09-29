@@ -1,6 +1,6 @@
 // The super admin's dashboard: is the system working, who the admins are, and what happened to
 // admin accounts. The super admin is not cleared for regional data, so nothing here (and nothing
-// the API gives this account) shows districts, locals, workplaces, chairmen or downloads.
+// the API gives this account) shows districts, locals, workplaces, secretaries or downloads.
 import { useEffect, useState } from 'react';
 import {
   Activity as ActivityIcon,
@@ -70,8 +70,8 @@ export function SystemPage() {
     const { ok } = await confirm({
       title: r.active ? `Close the ${r.name} Region?` : `Open the ${r.name} Region?`,
       body: r.active
-        ? 'District Chairmen in this region can no longer register. Existing chairmen and admins keep their access.'
-        : 'District Chairmen in this region can register, and the region appears on the registration page.',
+        ? 'District Secretaries in this region can no longer register. Existing districts, locals and admins keep their access.'
+        : 'District Secretaries in this region can register, and the region appears on the registration page.',
       confirm: r.active ? 'Close region' : 'Open region',
       danger: r.active,
     });
@@ -96,7 +96,7 @@ export function SystemPage() {
       <Alert tone={healthy ? 'success' : 'error'} title={healthy ? 'Everything is working' : 'The database is not responding'}>
         {healthy
           ? `The API and database answered just now (database in ${s.database.latencyMs} ms). Checked every minute.`
-          : 'Chairmen cannot save right now. Check the Postgres service on Railway.'}
+          : 'Secretaries cannot save right now. Check the Postgres service on Railway.'}
       </Alert>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

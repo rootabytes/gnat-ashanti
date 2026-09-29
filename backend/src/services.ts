@@ -88,15 +88,15 @@ export async function submitLocal(localId: number) {
   const l = await getLocalRow(localId);
   if (!isEditable(l.status)) throw new HttpError(409, 'This local has already been submitted.');
   const problems: string[] = [];
-  if (!l.chair_name) problems.push("Enter the local chairman's name.");
-  if (!l.chair_phone) problems.push("Enter the local chairman's phone number.");
+  if (!l.chair_name) problems.push("Enter the local secretary's name.");
+  if (!l.chair_phone) problems.push("Enter the local secretary's phone number.");
   const n = await one<{ n: number }>('SELECT count(*)::int AS n FROM basic_units WHERE local_id = $1', [localId]);
   if (!n?.n) problems.push('Add at least one basic unit or workplace.');
   if (problems.length) throw new HttpError(400, problems.join(' '), problems);
   await query(`UPDATE locals SET status = 'submitted', submitted_at = now(), updated_at = now() WHERE id = $1`, [localId]);
 }
 
-/** Chairman pulls back a submission the admin has not approved yet. */
+/** The Local Secretary (or District Secretary) pulls back a submission the admin has not approved yet. */
 export async function reopenLocal(localId: number) {
   const l = await getLocalRow(localId);
   if (l.status !== 'submitted') throw new HttpError(409, 'Only a submitted (not yet approved) local can be reopened.');
@@ -177,8 +177,8 @@ export async function submitDistrict(districtId: number) {
   const d = await getDistrictRow(districtId);
   if (!isEditable(d.status)) throw new HttpError(409, 'This district has already been submitted.');
   const problems: string[] = [];
-  if (!d.chair_name) problems.push("Enter the district chairman's name.");
-  if (!d.chair_phone) problems.push("Enter the district chairman's phone number.");
+  if (!d.chair_name) problems.push("Enter the District Secretary's name.");
+  if (!d.chair_phone) problems.push("Enter the District Secretary's phone number.");
   const pd = await one<{ n: number }>('SELECT count(*)::int AS n FROM district_political_districts WHERE district_id = $1', [districtId]);
   if (!pd?.n) problems.push('Select at least one political administrative district.');
   const ln = await one<{ n: number }>('SELECT count(*)::int AS n FROM locals WHERE district_id = $1', [districtId]);

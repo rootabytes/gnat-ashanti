@@ -7,7 +7,7 @@ import DistrictWorkspace from './pages/district/DistrictWorkspace';
 import DistrictLocalEditor from './pages/district/DistrictLocalEditor';
 import LocalWorkspace from './pages/local/LocalWorkspace';
 
-// Admin (and its charts) is a separate download so chairmen on mobile data never fetch it.
+// Admin (and its charts) is a separate download so secretaries on mobile data never fetch it.
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 // Rarely opened pages stay out of the form bundle too.
 const Privacy = lazy(() => import('./pages/Privacy'));

@@ -44,7 +44,7 @@ after(async () => {
   await pool?.end();
 });
 
-test('full chairman → admin flow', async () => {
+test('full secretary → admin flow', async () => {
   const meta = await api('GET', '/meta');
   assert.equal(meta.status, 200);
   assert.equal(meta.data.categories.length, 11);
@@ -147,7 +147,7 @@ test('full chairman → admin flow', async () => {
   const adum = me.locals.find((l: any) => l.name === 'Adum');
   assert.match(adum.code, /^L-/);
 
-  // local chairman signs in and fills units
+  // local secretary signs in and fills units
   const lacc = await api('POST', '/access', { code: adum.code });
   assert.equal(lacc.data.role, 'local');
   const lt = lacc.data.token;
@@ -190,7 +190,7 @@ test('full chairman → admin flow', async () => {
   assert.equal((await api('POST', '/local/reopen', {}, lt)).status, 200);
   assert.equal((await api('POST', '/local/submit', {}, lt)).status, 200);
 
-  // district fills Bantama on behalf (missing chairman → cannot submit)
+  // district fills Bantama on behalf (missing secretary → cannot submit)
   const bant = me.locals.find((l: any) => l.name === 'Bantama');
   assert.equal(
     (await api('PUT', `/district/locals/${bant.id}/units`, { units: [{ name: 'Shared Academy', category: 'Private Schools' }] }, dt))
@@ -234,7 +234,7 @@ test('full chairman → admin flow', async () => {
   const appr = await api('POST', `/admin/districts/${me.id}/approve-all`, {}, at);
   assert.equal(appr.data.status, 'approved');
   assert.ok(appr.data.locals.every((l: any) => l.status === 'approved'));
-  assert.equal((await api('POST', '/district/reopen', {}, dt)).status, 409, 'approved cannot be reopened by chairman');
+  assert.equal((await api('POST', '/district/reopen', {}, dt)).status, 409, 'approved cannot be reopened by secretary');
 
   // codes & audit
   const codes = (await api('GET', '/admin/codes', undefined, at)).data;
@@ -317,6 +317,62 @@ test('workplace import from CSV and the Excel template', async () => {
   assert.equal((await upload('/local/units/import', csv, '')).status, 401);
 });
 
+test('removing a secretary locks them out and keeps the work; an empty entry is deleted', async () => {
+  const ash = (await api('GET', '/meta')).data.regions[0];
+  const rt = (await api('POST', '/admin/login', { login: 'regional@example.com', password: 'regional-own-password' })).data.token;
+
+  // added by mistake: nothing filled in, so the whole district goes
+  const oops = (await api('POST', `/admin/districts?regionId=${ash.id}`, { name: 'Oops', chairName: 'Wrong Person' }, rt)).data;
+  const gone = await api('POST', `/admin/districts/${oops.id}/remove-secretary`, {}, rt);
+  assert.equal(gone.data.removed, 'district');
+  assert.equal((await api('GET', `/admin/districts/${oops.id}`, undefined, rt)).status, 404);
+
+  const reg = await api('POST', '/register', {
+    regionId: ash.id,
+    registrationKey: 'torch2026',
+    districtName: 'Remove Test',
+    chairName: 'Yaw Boateng',
+    chairPhone: '0241112222',
+  });
+  const dt = reg.data.token;
+  await api('POST', '/district/locals', { name: 'Keeps', chairName: 'Afia Mensah', chairPhone: '0203334444' }, dt);
+  let me = (await api('POST', '/district/locals', { name: 'Empty', chairName: 'Kojo Asare' }, dt)).data;
+  const keeps = me.locals.find((l: any) => l.name === 'Keeps');
+  const empty = me.locals.find((l: any) => l.name === 'Empty');
+  const lt = (await api('POST', '/access', { code: keeps.code })).data.token;
+  assert.equal((await api('PUT', '/local/units', { units: [{ name: 'Keeps JHS', category: 'Basic Units' }] }, lt)).status, 200);
+
+  // the District Secretary removes Local Secretaries: an empty local is deleted, one with workplaces is kept
+  me = (await api('POST', `/district/locals/${empty.id}/remove-secretary`, {}, dt)).data;
+  assert.ok(!me.locals.some((l: any) => l.id === empty.id));
+  me = (await api('POST', `/district/locals/${keeps.id}/remove-secretary`, {}, dt)).data;
+  const kept = me.locals.find((l: any) => l.id === keeps.id);
+  assert.equal(kept.chairName, null);
+  assert.equal(kept.chairPhone, null);
+  assert.equal(kept.unitCount, 1);
+  assert.notEqual(kept.code, keeps.code);
+  assert.equal((await api('GET', '/local/me', undefined, lt)).status, 401, 'removed Local Secretary is signed out');
+  assert.equal((await api('POST', '/access', { code: keeps.code })).status, 404, 'old local code no longer works');
+
+  // another district cannot touch this district's locals
+  const other = await api('POST', '/register', {
+    regionId: ash.id,
+    registrationKey: 'torch2026',
+    districtName: 'Other District',
+    chairName: 'Ama Darko',
+    chairPhone: '0241113333',
+  });
+  assert.equal((await api('POST', `/district/locals/${keeps.id}/remove-secretary`, {}, other.data.token)).status, 404);
+
+  // the Regional Secretary removes the District Secretary: the district and its locals stay
+  const r = await api('POST', `/admin/districts/${me.id}/remove-secretary`, {}, rt);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.removed, 'secretary');
+  assert.equal(r.data.district.chairName, null);
+  assert.equal(r.data.district.locals.length, 1);
+  assert.equal((await api('GET', '/district/me', undefined, dt)).status, 401, 'removed District Secretary is signed out');
+});
+
 test('super admin adds an admin who signs in by phone, then adds their email and password', async () => {
   const sa = (await api('POST', '/admin/login', { login: 'secretary@example.com', password: 'a-brand-new-password' })).data.token;
   const ash = (await api('GET', '/meta')).data.regions[0];
@@ -392,6 +448,7 @@ test('the super admin manages admins and sees the system, but never regional dat
     ['POST', '/admin/districts', { name: 'Sneaky' }],
     ['POST', `/admin/districts/${districtId}/status`, { status: 'approved' }],
     ['POST', `/admin/districts/${districtId}/reset-code`],
+    ['POST', `/admin/districts/${districtId}/remove-secretary`],
     ['DELETE', `/admin/locals/${localId}`],
     ['GET', '/admin/political-districts'],
     ['GET', '/admin/export.xlsx'],

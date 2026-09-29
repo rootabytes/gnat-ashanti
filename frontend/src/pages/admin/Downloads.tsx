@@ -52,7 +52,7 @@ export default function Downloads() {
     {
       key: 'locals',
       title: 'Locals (CSV)',
-      desc: 'One row per local with chairman, workplace count and status.',
+      desc: 'One row per local with Local Secretary, workplace count and status.',
       path: '/admin/export.csv?level=locals',
       name: 'locals.csv',
       cta: 'Download CSV',
@@ -61,7 +61,7 @@ export default function Downloads() {
     {
       key: 'districts',
       title: 'Districts (CSV)',
-      desc: 'One row per GNAT district with political districts covered, chairman and progress.',
+      desc: 'One row per GNAT district with political districts covered, District Secretary and progress.',
       path: '/admin/export.csv?level=districts',
       name: 'districts.csv',
       cta: 'Download CSV',

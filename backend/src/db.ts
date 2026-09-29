@@ -5,7 +5,7 @@ const needsSsl = /sslmode=require/.test(config.databaseUrl) || process.env.PGSSL
 
 export const pool = new Pool({
   connectionString: config.databaseUrl,
-  // Requests are short, so 20 connections serve hundreds of chairmen at once. Railway's Postgres
+  // Requests are short, so 20 connections serve hundreds of secretaries at once. Railway's Postgres
   // allows 100; PG_POOL_MAX changes it (keep the total across replicas under that).
   max: Number(process.env.PG_POOL_MAX) || 20,
   ssl: needsSsl ? { rejectUnauthorized: false } : undefined,

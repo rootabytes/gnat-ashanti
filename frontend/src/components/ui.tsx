@@ -1,12 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
-import type {
-  ButtonHTMLAttributes,
-  ComponentProps,
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes,
-} from 'react';
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -112,7 +105,7 @@ export function TextField({
   hint,
   error,
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: ReactNode; error?: string | null }) {
+}: ComponentProps<'input'> & { label: string; hint?: ReactNode; error?: string | null }) {
   const id = useId();
   const [shown, setShown] = useState(false);
   if (rest.type === 'password') {

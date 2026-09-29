@@ -1,11 +1,11 @@
-// Load test: many chairmen working at the same moment, all from ONE IP address (as on a mobile
+// Load test: many secretaries working at the same moment, all from ONE IP address (as on a mobile
 // network or a venue's WiFi, where many phones share an address).
 //
 //   API_URL=http://localhost:4300/api DISTRICTS=20 LOCALS=5 npx tsx scripts/loadtest.ts
 //
-// Setup: DISTRICTS District Chairmen register and each adds LOCALS locals.
-// Then everyone starts together: every Local Chairman opens their code, adds workplaces one
-// by one (each change autosaves, like the phone does) and submits; every District Chairman
+// Setup: DISTRICTS District Secretaries register and each adds LOCALS locals.
+// Then everyone starts together: every Local Secretary opens their code, adds workplaces one
+// by one (each change autosaves, like the phone does) and submits; every District Secretary
 // keeps refreshing their dashboard. Run it against a test database, never the live one.
 const API = process.env.API_URL ?? 'http://localhost:4300/api';
 const DISTRICTS = Number(process.env.DISTRICTS ?? 20);
@@ -51,7 +51,7 @@ async function main() {
       regionId: region.id,
       registrationKey: KEY || null,
       districtName: `Load ${RUN} District ${d + 1}`,
-      chairName: `Chair ${d + 1}`,
+      chairName: `Secretary ${d + 1}`,
       chairPhone: phone(d),
     });
     if (reg.status !== 201) {
@@ -78,7 +78,7 @@ async function main() {
   );
 
   const people = localCodes.length + districts.length;
-  console.log(`\nGo: ${people} people at once (${localCodes.length} Local + ${districts.length} District Chairmen)…`);
+  console.log(`\nGo: ${people} people at once (${localCodes.length} Local + ${districts.length} District Secretaries)…`);
   const t0 = performance.now();
   const outcomes = { submitted: 0, blocked: 0, failed: 0 };
 
@@ -101,7 +101,7 @@ async function main() {
     else outcomes.failed++;
   };
 
-  const districtChair = async (d: { code: string }) => {
+  const districtSecretary = async (d: { code: string }) => {
     await pause(0, 2000);
     const acc = await call('POST /access', 'POST', '/access', { code: d.code });
     if (acc.status !== 200) return void (acc.status === 429 ? outcomes.blocked++ : outcomes.failed++);
@@ -111,7 +111,7 @@ async function main() {
     }
   };
 
-  await Promise.all([...localCodes.map(localChair), ...districts.map(districtChair)]);
+  await Promise.all([...localCodes.map(localChair), ...districts.map(districtSecretary)]);
   const secs = (performance.now() - t0) / 1000;
 
   // Report
@@ -135,7 +135,7 @@ async function main() {
     `\n${samples.length} requests in ${secs.toFixed(1)} s (${(samples.length / secs).toFixed(0)}/s), p95 ${pct(all, 95).toFixed(0)} ms, ${errors} errors.`,
   );
   console.log(
-    `Local Chairmen: ${outcomes.submitted} of ${localCodes.length} submitted. Turned away by the rate limit: ${outcomes.blocked}. Other failures: ${outcomes.failed}.`,
+    `Local Secretaries: ${outcomes.submitted} of ${localCodes.length} submitted. Turned away by the rate limit: ${outcomes.blocked}. Other failures: ${outcomes.failed}.`,
   );
   process.exit(errors || outcomes.blocked || outcomes.failed ? 1 : 0);
 }

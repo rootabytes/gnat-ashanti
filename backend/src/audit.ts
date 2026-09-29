@@ -19,7 +19,7 @@ export async function audit(
       [actorType, actorId, actorLabel ?? (s?.role === 'admin' ? s.name : null), action, entity.type, entity.id, regionId, detail ?? null],
     );
   } catch (e) {
-    // Never fail a chairman's save because the log write failed.
+    // Never fail a secretary's save because the log write failed.
     console.error('[audit] write failed', e);
   }
 }

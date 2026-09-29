@@ -25,7 +25,7 @@ export function parse<T extends z.ZodType>(schema: T, data: unknown): z.infer<T>
 const FIELD_LABELS: Record<string, string> = {
   name: 'Name',
   districtName: 'District name',
-  chairName: "Chairman's name",
+  chairName: 'Full name',
   chairPhone: 'Phone number',
   chairGroup: 'Name / group',
   remarks: 'Remarks',

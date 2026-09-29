@@ -58,7 +58,7 @@ adminRouter.use(requireRole('admin'));
 const admin = (req: any) => req.session as { adminId: number; regionId: number | null; name: string };
 
 /**
- * What the regions collect (districts, locals, workplaces, chairmen's names and phones, codes,
+ * What the regions collect (districts, locals, workplaces, secretaries' names and phones, codes,
  * exports, the regional activity log) is for that region's admins only. The super admin runs the
  * system and manages admins, and is not cleared to see it: every regional route goes through one
  * of these three checks, which refuse an admin without a region.
@@ -314,6 +314,30 @@ adminRouter.delete('/locals/:id', async (req, res) => {
   await query('DELETE FROM locals WHERE id = $1', [l.id]);
   await audit(req, 'local.delete', { type: 'local', id: l.id, regionId: l.region_id }, { name: l.name });
   res.json(await districtDetail(l.district_id, { includeCodes: true, includeUnits: true }));
+});
+
+/**
+ * Removes a District Secretary: their code stops working at once (signing them out) and their name
+ * and phone are cleared. The district's locals and workplaces stay, ready for a new secretary. A
+ * district with nothing filled in yet (no locals) was most likely added by mistake, so it is deleted.
+ */
+adminRouter.post('/districts/:id/remove-secretary', async (req, res) => {
+  const d = await districtInScope(req, intParam(req.params.id));
+  const n = await one<{ n: number }>('SELECT count(*)::int AS n FROM locals WHERE district_id = $1', [d.id]);
+  const where = { type: 'district', id: d.id, regionId: d.region_id };
+  if (!n?.n) {
+    await query('DELETE FROM districts WHERE id = $1', [d.id]);
+    await audit(req, 'district.delete', where, { name: d.name });
+    return res.json({ removed: 'district', district: null });
+  }
+  const c = newCode('D');
+  await query(
+    `UPDATE districts SET chair_name = NULL, chair_phone = NULL, chair_group = NULL, code_lookup = $2, code_enc = $3,
+       code_version = code_version + 1, updated_at = now() WHERE id = $1`,
+    [d.id, c.lookup, c.enc],
+  );
+  await audit(req, 'district.remove_secretary', where, { name: d.name });
+  res.json({ removed: 'secretary', district: await districtDetail(d.id, { includeCodes: true, includeUnits: true }) });
 });
 
 adminRouter.post('/districts/:id/reset-code', async (req, res) => {

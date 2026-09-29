@@ -68,7 +68,7 @@ export default function Demo() {
   async function reset() {
     const { ok } = await confirm({
       title: 'Reset the demo?',
-      body: 'Everyone testing shares this data. Resetting brings back the original districts, gives every chairman a new code and signs all testers out.',
+      body: 'Everyone testing shares this data. Resetting brings back the original districts, gives every district and local a new code and signs all testers out.',
       confirm: 'Reset',
       danger: true,
     });
@@ -149,7 +149,7 @@ export default function Demo() {
 
             <Role
               icon={Building2}
-              title="District Chairmen"
+              title="District Secretaries"
               sub="Choose the political districts the district covers, list its locals, share their codes, and submit."
             >
               <CodeList
@@ -161,7 +161,7 @@ export default function Demo() {
 
             <Role
               icon={School}
-              title="Local Chairmen"
+              title="Local Secretaries"
               sub="List the schools and workplaces in the local, with optional GPS addresses or an Excel import, and submit."
             >
               <CodeList
@@ -179,8 +179,8 @@ export default function Demo() {
 
             <Role
               icon={UserPlus}
-              title="A new District Chairman"
-              sub="Register a district from scratch, the way a chairman would from the WhatsApp link."
+              title="A new District Secretary"
+              sub="Register a district from scratch, the way a District Secretary would from the WhatsApp link."
             >
               <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
                 Registration key: <code className="code-font rounded bg-surface-2 px-1.5 py-0.5 text-ink">{info.registrationKey}</code>
@@ -197,11 +197,11 @@ export default function Demo() {
             <Card title="A suggested test">
               <ol className="list-decimal space-y-1.5 pl-5 text-[15px] text-ink-2">
                 <li>
-                  As the <b>Bantama</b> Local Chairman, add two schools (one with a GPS address such as AK-039-5028), import a few from
+                  As the <b>Bantama</b> Local Secretary, add two schools (one with a GPS address such as AK-039-5028), import a few from
                   Excel, then submit.
                 </li>
                 <li>
-                  As the <b>Kumasi Metro</b> District Chairman, see Bantama submitted, fill <b>Suame</b> on its chairman's behalf, then
+                  As the <b>Kumasi Metro</b> District Secretary, see Bantama submitted, fill <b>Suame</b> on its secretary's behalf, then
                   submit the district.
                 </li>
                 <li>

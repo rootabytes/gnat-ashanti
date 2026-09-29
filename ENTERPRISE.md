@@ -11,7 +11,7 @@ Rootabytes (Rootabytes Enterprise, Kumasi) builds and operates the system and is
 | P1  | **Registered data controller** and a named data protection contact.                                                                                                                           | ✅ Rootabytes' DPC registration. Add the registration number in `frontend/src/lib/org.ts` (`dpcRegistration`) and it shows on the notice. |
 | P1  | **Privacy notice**: what is collected, why, who sees it, where it is stored, how long it is kept, and people's rights.                                                                        | ✅ `/privacy`, linked from every page footer, the code screen and the registration form.                                                  |
 | P1  | **Data processing agreement** between Rootabytes and GNAT: roles (GNAT decides the purpose, Rootabytes runs the system), Railway and Cloudflare as sub-processors, and hosting outside Ghana. | Open. A document to sign, not code.                                                                                                       |
-| P2  | **Retention**: chairmen's names and phones deleted or anonymised within 12 months after final approval; the approved structure kept as GNAT's record.                                         | ✅ Stated in the notice. The anonymise action itself (an admin button) is still to build.                                                 |
+| P2  | **Retention**: secretaries' names and phones deleted or anonymised within 12 months after final approval; the approved structure kept as GNAT's record.                                       | ✅ Stated in the notice. The anonymise action itself (an admin button) is still to build.                                                 |
 | P2  | **Data sharing rule**: every export says "Confidential: GNAT internal", and downloads are logged.                                                                                             | ✅ Excel (sheet footers and Summary), PDF (every page). The audit log records every download.                                             |
 | P2  | **Demo kept apart from real data**: the demo publishes its passwords, so it runs on its own database.                                                                                         | ✅ The API refuses to mix them, in both directions.                                                                                       |
 
@@ -34,7 +34,7 @@ Rootabytes (Rootabytes Enterprise, Kumasi) builds and operates the system and is
 | P1  | **Daily database backups** on Railway, plus a **monthly restore test** into a scratch database.               | Switch on in Railway (DEPLOY.md step 1.7).                         |
 | P1  | **Uptime monitoring** of `/api/health` with alerts.                                                           | Set up in UptimeRobot or Better Stack (DEPLOY.md step 5.5).        |
 | P2  | **Error tracking** (Sentry) on the API and site. The request ID already links a user's error to its log line. | Open.                                                              |
-| P2  | **Staging environment** where changes are tested before chairmen see them.                                    | Partly: the demo site runs every change on its own database first. |
+| P2  | **Staging environment** where changes are tested before secretaries see them.                                 | Partly: the demo site runs every change on its own database first. |
 | P2  | **Two API replicas** on Railway for zero-downtime deploys. Migrations are already lock-safe.                  | Open.                                                              |
 | P3  | Point-in-time recovery for Postgres, and a written incident runbook.                                          | Open.                                                              |
 
@@ -55,10 +55,10 @@ Rootabytes (Rootabytes Enterprise, Kumasi) builds and operates the system and is
 
 ## Engineering quality
 
-|     | Recommendation                                                                                                                                                          | Status |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| P2  | **ESLint + Prettier** with a pre-commit hook (husky + lint-staged), checked in CI.                                                                                      | ✅     |
-| P2  | **Browser tests (Playwright) in CI**, including the demo site.                                                                                                          | ✅     |
-| P2  | **OpenAPI spec** generated from the zod schemas, at `/api/openapi.json`. A test fails if a route is missing from it.                                                    | ✅     |
-| P3  | **Accessibility audit (axe)** in CI: home, registration, privacy, both chairman forms, admin pages and demo, including devices set to dark mode (the site stays white). | ✅     |
-| P3  | **Performance budget** in CI: the chairmen's form under 110 KB of JavaScript and 12 KB of CSS, gzipped (about 100 KB and 7 KB today).                                   | ✅     |
+|     | Recommendation                                                                                                                                                                   | Status |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| P2  | **ESLint + Prettier** with a pre-commit hook (husky + lint-staged), checked in CI.                                                                                               | ✅     |
+| P2  | **Browser tests (Playwright) in CI**, including the demo site.                                                                                                                   | ✅     |
+| P2  | **OpenAPI spec** generated from the zod schemas, at `/api/openapi.json`. A test fails if a route is missing from it.                                                             | ✅     |
+| P3  | **Accessibility audit (axe)** in CI: home, registration, privacy, the district and local forms, admin pages and demo, including devices set to dark mode (the site stays white). | ✅     |
+| P3  | **Performance budget** in CI: the district and local form under 110 KB of JavaScript and 12 KB of CSS, gzipped (about 100 KB and 7 KB today).                                    | ✅     |

@@ -123,7 +123,7 @@ await regional.getByRole('button', { name: 'Save key' }).click();
 await regional.getByText('Registration key saved').waitFor();
 console.log('✓ Regional Secretary sets the registration key');
 
-// 2. District chairman registers on a phone
+// 2. District Secretary registers on a phone
 const phone = await browser.newContext({ ...devices['Pixel 7'] });
 const d = await phone.newPage();
 watch(d, 'district');
@@ -140,14 +140,14 @@ console.log('✓ footer credit + privacy notice');
 await d.getByRole('link', { name: 'Register district' }).click();
 await d.getByLabel('Registration key').fill('torch2026');
 await d.getByLabel('GNAT District name').fill('Kumasi Metro');
-await d.getByLabel('Your full name (District Chairman)').fill('Kwame Asante');
+await d.getByLabel('Your full name (District Secretary)').fill('Kwame Asante');
 await d.getByLabel('Your phone number').fill('024 555 1234');
 await d.getByRole('button', { name: 'Register and get my code' }).click();
 await d.getByText('Your district is registered').waitFor();
 const dcode = (await d.locator('.code-font').first().textContent()).trim();
 await shot(d, '02-registered');
 await d.getByRole('button', { name: /Start filling/ }).click();
-await closeGuide(d, 'District Chairman');
+await closeGuide(d, 'District Secretary');
 // step 1 prefilled → political districts
 await d.getByText('01 · Political administrative district(s)').waitFor();
 await d.getByLabel('Search political districts').fill('Kumasi');
@@ -164,13 +164,23 @@ for (const [n, c, p] of [
   ['Ayalolo', 'Kofi Boateng', '0547778888'],
 ]) {
   await d.getByLabel('Local name').fill(n);
-  if (c) await d.getByLabel('Local Chairman (optional)').fill(c);
-  if (p) await d.getByLabel('Chairman phone (optional)').fill(p);
-  await d.getByRole('button', { name: 'Add local' }).click();
+  if (c) await d.getByLabel("Local Secretary's full name").fill(c);
+  if (p) await d.getByLabel("Local Secretary's phone").fill(p);
+  await d.getByRole('button', { name: 'Add Local Secretary' }).click();
   await d.getByRole('dialog').getByText(`Send ${n} its code`).waitFor();
   if (n === 'Adum') await shot(d, '04-share-code');
   await d.getByRole('dialog').getByLabel('Close').click();
 }
+// a Local Secretary added by mistake is removed again (nothing listed yet, so the local goes too)
+await d.getByLabel('Local name').fill('Mistake');
+await d.getByLabel("Local Secretary's full name").fill('Wrong Person');
+await d.getByRole('button', { name: 'Add Local Secretary' }).click();
+await d.getByRole('dialog').getByLabel('Close').click();
+await d.locator('li', { hasText: 'Mistake' }).getByRole('button', { name: 'Remove secretary' }).click();
+await d.getByRole('dialog').getByRole('button', { name: 'Remove' }).click();
+await d.getByText('Mistake removed').waitFor();
+if (await d.locator('li', { hasText: 'Wrong Person' }).count()) errors.push('removed Local Secretary still listed');
+console.log('✓ Local Secretary added and removed');
 const adumCode = await (async () => {
   const r = await d.request.get('http://localhost:4000/api/district/me', {
     headers: { Authorization: 'Bearer ' + JSON.parse(await d.evaluate(() => localStorage.getItem('gnat.chair'))).token },
@@ -201,14 +211,14 @@ await d.getByRole('dialog').getByRole('button', { name: 'Submit' }).click();
 await d.getByText('Submitted. Thank you!').first().waitFor();
 console.log('✓ district filled Bantama on behalf');
 
-// 4. Local chairman opens the WhatsApp link
+// 4. Local secretary opens the WhatsApp link
 const phone2 = await browser.newContext({ ...devices['iPhone 13'] });
 const l = await phone2.newPage();
 watch(l, 'local');
 await l.goto(`${WEB}/?code=${encodeURIComponent(adumCode)}`);
 await l.getByRole('heading', { name: 'Adum Local' }).waitFor();
-await closeGuide(l, 'Local Chairman');
-await l.getByRole('heading', { name: 'Basic units / workplaces' }).waitFor(); // chairman already set → lands on step 2
+await closeGuide(l, 'Local Secretary');
+await l.getByRole('heading', { name: 'Basic units / workplaces' }).waitFor(); // secretary already set → lands on step 2
 await l.getByRole('button', { name: /Paste many at once/ }).click();
 await l
   .getByLabel('List of workplaces, one per line')
@@ -255,7 +265,7 @@ await l.getByRole('button', { name: 'Submit local' }).click();
 await l.getByRole('dialog').getByRole('button', { name: 'Submit' }).click();
 await l.getByText('Submitted. Thank you!').first().waitFor();
 await shot(l, '08-local-submitted');
-console.log('✓ local chairman submitted');
+console.log('✓ local secretary submitted');
 
 // 5. District submits
 await d.goto(`${WEB}/district?step=3`);
@@ -300,6 +310,21 @@ await shot(admin, '12b-code-slips');
 await regional.emulateMedia({ media: 'screen' });
 if (slips < 4) errors.push(`expected a slip per code, got ${slips}`);
 console.log(`✓ ${slips} code slips`);
+
+// the Regional Secretary adds a District Secretary from the menu, gets the code to send, then removes them
+await regional.getByRole('button', { name: 'Add District Secretary' }).first().click();
+await regional.getByLabel('GNAT district name').fill('Oforikrom');
+await regional.getByLabel("District Secretary's full name").fill('Abena Sarpong');
+await regional.getByLabel("District Secretary's phone").fill('0249990000');
+await regional.getByRole('dialog').getByRole('button', { name: 'Add District Secretary' }).click();
+await regional.getByRole('dialog').getByText('Send Oforikrom its code').waitFor();
+await shot(admin, '12c-district-secretary-added');
+await regional.getByRole('dialog').getByLabel('Close').click();
+await regional.getByRole('link', { name: 'Districts', exact: true }).click();
+await regional.locator('li', { hasText: 'Oforikrom' }).getByRole('button', { name: 'Remove secretary' }).click();
+await regional.getByRole('dialog').getByRole('button', { name: 'Remove' }).click();
+await regional.getByText('Oforikrom removed').waitFor();
+console.log('✓ District Secretary added and removed');
 
 // mobile admin on a phone set to dark mode: the site stays white (brand: red, sky blue, white)
 const dark = await browser.newContext({ ...devices['Pixel 7'], colorScheme: 'dark' });

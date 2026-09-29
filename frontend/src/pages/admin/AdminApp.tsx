@@ -8,6 +8,7 @@ import {
   LogOut,
   Network,
   Settings as SettingsIcon,
+  UserPlus,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import { api, session } from '../../lib/api';
 import { useMeta } from '../../lib/useMeta';
 import { useSignedOutRedirect } from '../../lib/useSignedOut';
 import Activity from './Activity';
+import { AddDistrictModal } from './AddDistrict';
 import Codes from './Codes';
 import DistrictReview from './DistrictReview';
 import Districts from './Districts';
@@ -57,6 +59,10 @@ interface Ctx {
   /** Appends ?regionId= so every request is scoped to the chosen region. */
   q: (path: string) => string;
   reloadMe: () => Promise<void>;
+  /** Opens "Add a District Secretary", the first job of a Regional Secretary. */
+  addDistrict: () => void;
+  /** Goes up each time a district is added, so lists can reload. */
+  districtsVersion: number;
 }
 const AdminCtx = createContext<Ctx | null>(null);
 export const useAdmin = () => useContext(AdminCtx)!;
@@ -101,6 +107,8 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
     }
   });
   const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [districtsVersion, setDistrictsVersion] = useState(0);
 
   const reloadMe = async () => {
     try {
@@ -117,7 +125,10 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
   const rid = region?.id;
   // Stable per region so pages can list it as an effect dependency without refetch loops.
   const q = useCallback((p: string) => `${p}${p.includes('?') ? '&' : '?'}regionId=${rid}`, [rid]);
-  const ctx = useMemo<Ctx | null>(() => (me && region ? { me, region, reloadMe, q } : null), [me, region, q]);
+  const ctx = useMemo<Ctx | null>(
+    () => (me && region ? { me, region, reloadMe, q, addDistrict: () => setAdding(true), districtsVersion } : null),
+    [me, region, q, districtsVersion],
+  );
   // After "Set up your account", so a new admin meets the guide once they can use the dashboard.
   const guide = useGuide(me && !me.must_change_password ? `admin.${me.id}` : null);
 
@@ -205,6 +216,18 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             className="no-print relative -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6"
           >
             <ul className="flex gap-1 py-2 lg:sticky lg:top-20 lg:flex-col lg:py-0">
+              {!isSuper && (
+                <li className="lg:mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setAdding(true)}
+                    className="flex h-full items-center gap-2 whitespace-nowrap rounded-lg bg-brand px-3 py-2 text-sm font-bold text-brand-ink shadow-sm ring-2 ring-brand/25 ring-offset-1 hover:opacity-90 lg:w-full lg:py-3"
+                  >
+                    <UserPlus className="h-4 w-4" aria-hidden />
+                    Add District Secretary
+                  </button>
+                </li>
+              )}
               {menu.map((n) => (
                 <li key={n.to}>
                   <NavLink
@@ -213,7 +236,7 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
                     className={({ isActive }) =>
                       cx(
                         'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
-                        isActive ? 'bg-brand text-brand-ink' : 'text-ink-2 hover:bg-surface-2',
+                        isActive ? 'bg-brand-soft text-brand' : 'text-ink-2 hover:bg-surface-2',
                       )
                     }
                   >
@@ -248,6 +271,7 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             )}
           </main>
         </div>
+        {!isSuper && <AddDistrictModal open={adding} onClose={() => setAdding(false)} onAdded={() => setDistrictsVersion((v) => v + 1)} />}
         <Footer />
       </div>
     </AdminCtx.Provider>

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Building2, Check, Circle, Landmark, MapPinned, School } from 'lucide-react';
+import { ArrowRight, Building2, Check, Circle, Landmark, MapPinned, School, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Alert, Card, Loading, StatusBadge } from '../../components/ui';
+import { Alert, Button, Card, Loading, StatusBadge, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
 import type { Status } from '../../lib/api';
-import { timeAgo } from '../../lib/format';
+import { plural, timeAgo, whatsappLink } from '../../lib/format';
 import { PageTitle, useAdmin } from './AdminApp';
+import { registrationMessage } from './Settings';
 import { CategoryChart, LocalsPerDistrictChart, StatTile, StatusBar, TimelineChart } from './charts';
 
 export interface OverviewData {
@@ -50,7 +51,7 @@ interface Dup {
 }
 
 export default function Overview() {
-  const { q, region } = useAdmin();
+  const { q, region, districtsVersion } = useAdmin();
   const [data, setData] = useState<OverviewData | null>(null);
   const [dups, setDups] = useState<Dup[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -65,10 +66,10 @@ export default function Overview() {
         (e) => setError(e.message),
       );
     load();
-    // Light polling so the dashboard stays live while chairmen are submitting.
+    // Light polling so the dashboard stays live while secretaries are submitting.
     const t = window.setInterval(() => document.visibilityState === 'visible' && load(), 60_000);
     return () => window.clearInterval(t);
-  }, [q]);
+  }, [q, districtsVersion]);
 
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!data) return <Loading />;
@@ -80,6 +81,8 @@ export default function Overview() {
   return (
     <div className="space-y-5">
       <PageTitle title={`${region.name} Region overview`} sub="Live progress of the GNAT mapping exercise. Updates every minute." />
+
+      <AddSecretariesCard districts={data.perDistrict} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
@@ -232,6 +235,39 @@ export default function Overview() {
   );
 }
 
+/** The first job of a Regional Secretary, kept at the top: every district needs its secretary. */
+function AddSecretariesCard({ districts }: { districts: OverviewData['perDistrict'] }) {
+  const { region, addDistrict } = useAdmin();
+  const without = districts.filter((d) => !d.chairName).length;
+  return (
+    <section
+      aria-labelledby="add-secretaries"
+      className="rounded-xl border-2 border-brand bg-brand-soft p-4 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-5"
+    >
+      <div className="min-w-0">
+        <h2 id="add-secretaries" className="flex items-center gap-2 text-lg font-extrabold text-ink">
+          <UserPlus className="h-5 w-5 text-brand" aria-hidden />
+          Add your District Secretaries
+        </h2>
+        <p className="mt-1 text-sm text-ink-2">
+          The mapping starts when every GNAT district has its secretary. Each District Secretary then adds their Local Secretaries.
+        </p>
+        <p className="mt-1 text-sm font-semibold text-ink">
+          {plural(districts.length, 'district')} added
+          {without > 0 && <span className="text-[var(--st-returned)]"> · {without} without a secretary</span>}
+        </p>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 sm:mt-0 sm:shrink-0 sm:flex-col sm:items-stretch">
+        <Button size="lg" onClick={addDistrict}>
+          <UserPlus className="h-5 w-5" aria-hidden />
+          Add District Secretary
+        </Button>
+        <WhatsAppButton size="md" href={whatsappLink(registrationMessage(region))} label="Share sign-up link" />
+      </div>
+    </section>
+  );
+}
+
 function CoverageCard({ coverage }: { coverage: OverviewData['coverage'] }) {
   const [onlyGaps, setOnlyGaps] = useState(false);
   const covered = coverage.filter((c) => c.gnatDistricts.length).length;
@@ -303,6 +339,7 @@ const ACTION_TEXT: Record<string, string> = {
   'district.edit': 'edited district',
   'district.delete': 'deleted district',
   'district.reset_code': 'reset the code of district',
+  'district.remove_secretary': 'removed the secretary of district',
   'local.create': 'added local',
   'local.units': 'updated workplaces of local',
   'local.submit': 'submitted local',
@@ -312,6 +349,7 @@ const ACTION_TEXT: Record<string, string> = {
   'local.draft': 'moved local back to in-progress',
   'local.delete': 'deleted local',
   'local.reset_code': 'reset the code of local',
+  'local.remove_secretary': 'removed the secretary of local',
   'admin.login': 'signed in',
   'export.xlsx': 'downloaded Excel',
   'export.csv': 'downloaded CSV',
@@ -329,9 +367,9 @@ export function ActivityList({ rows }: { rows: AuditRow[] }) {
         const who =
           r.actor_label ??
           (r.actor_type === 'district'
-            ? 'District chairman'
+            ? 'District secretary'
             : r.actor_type === 'local'
-              ? 'Local chairman'
+              ? 'Local secretary'
               : r.actor_type === 'admin'
                 ? 'Admin'
                 : 'Someone');

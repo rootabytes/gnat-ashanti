@@ -6,7 +6,7 @@ const api = (p, o = {}) =>
   fetch('http://localhost:4000/api' + p, { ...o, headers: { 'content-type': 'application/json', ...(o.headers ?? {}) } }).then((r) =>
     r.json(),
   );
-// A chairman of Ayalolo (created by flow.mjs) signs in via the Regional Secretary's code list.
+// A secretary of Ayalolo (created by flow.mjs) signs in via the Regional Secretary's code list.
 // flow.mjs added the Regional Secretary with this email and password.
 const { token: at } = await api('/admin/login', {
   method: 'POST',
@@ -17,7 +17,7 @@ const code = codes.find((c) => c.name === 'Ayalolo').code;
 const p = await ctx.newPage();
 await p.goto(`http://localhost:4173/?code=${code}`);
 await p.getByRole('heading', { name: 'Ayalolo Local' }).waitFor();
-await closeGuide(p, 'Local Chairman');
+await closeGuide(p, 'Local Secretary');
 await p.getByRole('heading', { name: 'Basic units / workplaces' }).waitFor();
 await p.getByLabel('Workplace name').fill('Race Condition Basic');
 await p.getByRole('button', { name: 'Add', exact: true }).click();

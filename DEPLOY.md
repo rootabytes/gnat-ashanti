@@ -42,7 +42,7 @@ Allow about 40 minutes for everything. Do the steps in order: the website needs 
 6. Open `https://<that address>/api/health`. You should see `{"ok":true}`.
    The tables, the 43 Ashanti districts and the admin account are created on first start.
 7. **Postgres service → Backups**: turn on daily backups.
-8. **API service → Settings → Deploy → Serverless**: keep it **off**, so the API never sleeps and the first chairman after a quiet night doesn't wait for it to wake up.
+8. **API service → Settings → Deploy → Serverless**: keep it **off**, so the API never sleeps and the first person after a quiet night doesn't wait for it to wake up.
 
 ## 2. Cloudflare Worker: the website
 
@@ -82,7 +82,7 @@ Log in to the Cloudflare account that holds **rootabytes.com**.
 
 ## 4. Demo site (for testers)
 
-The demo lets anyone try every role with one tap: Regional Secretary, District Chairmen and Local Chairmen, with fictional districts in every status. Its passwords and access codes are **shown on a public page**, so it runs on its **own database**. The API refuses to start in demo mode on a database that already holds data, and refuses real mode on the demo database.
+The demo lets anyone try every role with one tap: Regional Secretary, District and Local Secretaries, with fictional districts in every status. Its passwords and access codes are **shown on a public page**, so it runs on its **own database**. The API refuses to start in demo mode on a database that already holds data, and refuses real mode on the demo database.
 
 1. **Railway**: in the same project, **+ Create → GitHub Repo → gnat-ashanti** again, rename it **`api-demo`**, and set the same Root Directory and config file as in step 1.2.
 2. **+ Create → Database → PostgreSQL** again, and rename it **`Postgres-demo`**.
@@ -102,7 +102,7 @@ The demo lets anyone try every role with one tap: Regional Secretary, District C
 
 The demo data is reset on every deploy and whenever a tester taps **Reset demo data** on the demo page. Demo admins cannot change their password, so the published one keeps working.
 
-## 5. Before sharing with chairmen
+## 5. Before sharing with District Secretaries
 
 1. Open `https://gnatashanti.rootabytes.com/admin`, sign in with `akasiya@rootabytes.com` and the temporary password, then set your name and choose your own password.
 1. **Settings → Admins → Add an admin**: add the Assistant Regional Secretary with his name and WhatsApp number (access: Ashanti Region only). Tap **WhatsApp** in the window that opens to send him the link and a temporary password from your own WhatsApp. He signs in with his phone number, adds his email and chooses his own password; the temporary one works for 7 days. If he loses it, **New password** sends a fresh one.
@@ -110,7 +110,7 @@ The demo data is reset on every deploy and whenever a tester taps **Reset demo d
 1. Test it yourself on a phone: register a test district, add a local and a workplace (try the Excel template and a GPS address), then delete the test district from the admin page (Danger zone).
 1. Check the **Privacy notice** link at the bottom of every page. Fill in the Data Protection Commission registration number in `frontend/src/lib/org.ts` (`dpcRegistration`) when you have it.
 1. **Uptime monitoring**: add `https://gnatashanti-api.rootabytes.com/api/health` to UptimeRobot or Better Stack (both free) with an email or WhatsApp alert.
-1. **Settings → Share on WhatsApp** sends the ready-made message (link and key) to the District Chairmen's group.
+1. **Settings → Share on WhatsApp** sends the ready-made message (link and key) to the District Secretaries' group.
 
 ## Updating later
 

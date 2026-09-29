@@ -18,4 +18,4 @@ export const DPC = {
 };
 
 /** When this privacy notice last changed. Update it with every change to the notice. */
-export const PRIVACY_UPDATED = '28 September 2026';
+export const PRIVACY_UPDATED = '29 September 2026';

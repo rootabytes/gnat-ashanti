@@ -23,7 +23,7 @@ export default function DistrictLocalEditor() {
               <ArrowLeft className="h-4 w-4" aria-hidden />
               Back to all locals
             </Link>
-            <Alert tone="info">You are filling this local on behalf of its Local Chairman.</Alert>
+            <Alert tone="info">You are filling this local on behalf of its Local Secretary.</Alert>
           </div>
         }
       />

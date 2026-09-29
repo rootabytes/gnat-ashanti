@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BadgeCheck, CheckCheck, CheckCircle2, ChevronDown, LockOpen, RotateCcw, Trash2, Undo2 } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  BadgeCheck,
+  CheckCheck,
+  CheckCircle2,
+  ChevronDown,
+  LockOpen,
+  RotateCcw,
+  Trash2,
+  Undo2,
+  UserMinus,
+  UserPlus,
+} from 'lucide-react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -19,6 +31,8 @@ import { api } from '../../lib/api';
 import { districtInviteMessage, fmtDate, fmtPhone, localInviteMessage, plural, smsLink, whatsappLink } from '../../lib/format';
 import type { DistrictDetail, LocalSummary } from '../../lib/types';
 import { useMeta } from '../../lib/useMeta';
+import { useRemoveDistrictSecretary } from './AddDistrict';
+import { useAdmin } from './AdminApp';
 
 export default function DistrictReview() {
   const { id } = useParams();
@@ -29,11 +43,14 @@ export default function DistrictReview() {
   const [d, setD] = useState<DistrictDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<Set<number>>(new Set());
-  const [editing, setEditing] = useState(false);
+  const [params] = useSearchParams();
+  const [editing, setEditing] = useState(params.get('edit') === '1');
+  const removeSecretary = useRemoveDistrictSecretary();
+  const { districtsVersion } = useAdmin();
 
   useEffect(() => {
     api.admin.get<DistrictDetail>(`/admin/districts/${id}`).then(setD, (e) => setError(e.message));
-  }, [id]);
+  }, [id, districtsVersion]);
 
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!d) return <Loading />;
@@ -56,7 +73,7 @@ export default function DistrictReview() {
     if (status === 'returned') {
       const r = await confirm({
         title: `Return ${entity.name} for correction`,
-        body: 'The chairman will see your note and can edit and resubmit.',
+        body: `The ${target === 'district' ? 'District Secretary' : 'Local Secretary'} will see your note and can edit and resubmit.`,
         input: { label: 'What needs correcting?', required: true, placeholder: 'e.g. Please add the missing locals in Suame.' },
         confirm: 'Return',
       });
@@ -66,7 +83,7 @@ export default function DistrictReview() {
     if (status === 'draft') {
       const { ok } = await confirm({
         title: `Reopen ${entity.name}?`,
-        body: 'It goes back to “In progress” so the chairman can edit it.',
+        body: `It goes back to “In progress” so the ${target === 'district' ? 'District Secretary' : 'Local Secretary'} can edit it.`,
         confirm: 'Reopen',
       });
       if (!ok) return;
@@ -132,7 +149,7 @@ export default function DistrictReview() {
             </Button>
           )}
           {(d.status === 'draft' || d.status === 'returned') && (
-            <p className="text-sm text-ink-3">Waiting for the district chairman to submit.</p>
+            <p className="text-sm text-ink-3">Waiting for the District Secretary to submit.</p>
           )}
           {!d.verified && (
             <Button
@@ -148,7 +165,7 @@ export default function DistrictReview() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card
-          title="District Chairman"
+          title="District Secretary"
           action={
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
               {editing ? 'Close' : 'Edit'}
@@ -166,6 +183,15 @@ export default function DistrictReview() {
             />
           ) : (
             <dl className="space-y-2 text-sm">
+              {!d.chairName && (
+                <div className="rounded-lg border-2 border-dashed border-brand bg-brand-soft p-3">
+                  <p className="font-semibold text-ink">No District Secretary yet</p>
+                  <Button className="mt-2" onClick={() => setEditing(true)}>
+                    <UserPlus className="h-4 w-4" aria-hidden />
+                    Add secretary
+                  </Button>
+                </div>
+              )}
               <div>
                 <dt className="text-ink-3">Name</dt>
                 <dd className="font-semibold">{d.chairName ?? '-'}</dd>
@@ -186,6 +212,22 @@ export default function DistrictReview() {
                   <dd className="whitespace-pre-wrap">{d.remarks}</dd>
                 </div>
               )}
+              {d.chairName && (
+                <div className="pt-2">
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={async () => {
+                      const r = await removeSecretary({ id: d.id, name: d.name, chairName: d.chairName, locals: d.locals.length });
+                      if (r?.district) setD(r.district);
+                      else if (r) nav('/admin/districts');
+                    }}
+                  >
+                    <UserMinus className="h-4 w-4" aria-hidden />
+                    Remove secretary
+                  </Button>
+                </div>
+              )}
             </dl>
           )}
         </Card>
@@ -193,7 +235,9 @@ export default function DistrictReview() {
           <p className="code-font text-2xl font-extrabold text-brand">{d.code}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <CopyButton text={d.code ?? ''} />
-            {d.code && <WhatsAppButton href={whatsappLink(districtInviteMessage(d.name, d.code), d.chairPhone)} label="Send to chairman" />}
+            {d.code && (
+              <WhatsAppButton href={whatsappLink(districtInviteMessage(d.name, d.code), d.chairPhone)} label="Send to secretary" />
+            )}
             {d.code && <SmsButton href={smsLink(districtInviteMessage(d.name, d.code), d.chairPhone)} />}
             <Button
               size="sm"
@@ -201,7 +245,7 @@ export default function DistrictReview() {
               onClick={async () => {
                 const { ok } = await confirm({
                   title: 'Reset district code?',
-                  body: 'The old code stops working and the chairman is signed out.',
+                  body: 'The old code stops working and the District Secretary is signed out.',
                   confirm: 'Reset',
                   danger: true,
                 });
@@ -337,7 +381,7 @@ function LocalItem({
         <span className="min-w-0">
           <span className="block font-bold text-ink">{l.name}</span>
           <span className="block text-sm text-ink-3">
-            {l.chairName ?? 'No chairman'} {l.chairPhone && `· ${fmtPhone(l.chairPhone)}`} · {plural(l.unitCount, 'workplace')}
+            {l.chairName ?? 'No secretary'} {l.chairPhone && `· ${fmtPhone(l.chairPhone)}`} · {plural(l.unitCount, 'workplace')}
           </span>
         </span>
         <span className="flex shrink-0 items-center gap-2">
@@ -434,7 +478,7 @@ function EditDistrict({ d, onSaved }: { d: DistrictDetail; onSaved: (d: District
       }}
     >
       <TextField label="District name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-      <TextField label="Chairman" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
+      <TextField label="District Secretary" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
       <TextField label="Phone" type="tel" value={f.chairPhone} onChange={(e) => setF({ ...f, chairPhone: e.target.value })} />
       <TextField label="Name / group" value={f.chairGroup} onChange={(e) => setF({ ...f, chairGroup: e.target.value })} />
       {err && <Alert tone="error">{err}</Alert>}

@@ -24,7 +24,7 @@ const accessLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many wrong codes from this network. Please wait 15 minutes and try again.' },
 });
-// Also failures only, so a room of District Chairmen can all register over one WiFi.
+// Also failures only, so a room of District Secretaries can all register over one WiFi.
 const registerLimiter = rateLimit({
   windowMs: 60 * 60_000,
   limit: 30,
@@ -79,7 +79,7 @@ publicRouter.post('/register', registerLimiter, async (req, res) => {
   if (exists) {
     throw new HttpError(
       409,
-      `${body.districtName} is already registered. If you are its chairman, ask the Regional Secretary for your access code.`,
+      `${body.districtName} is already registered. If you are its District Secretary, ask the Regional Secretary for your access code.`,
     );
   }
   const c = newCode('D');

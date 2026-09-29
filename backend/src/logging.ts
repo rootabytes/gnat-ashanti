@@ -11,7 +11,7 @@ declare global {
 
 /**
  * One JSON line per request, tagged with a request id that is also returned in
- * the X-Request-Id header, so a chairman's error report can be found in the
+ * the X-Request-Id header, so a secretary's error report can be found in the
  * Railway logs. Bodies and query strings are never logged: they carry names,
  * phone numbers and access codes.
  */

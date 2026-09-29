@@ -30,7 +30,7 @@ export interface GuideStep {
 
 export interface Guide {
   role: GuideRole;
-  /** Who the guide is for, e.g. "Local Chairman". */
+  /** Who the guide is for, e.g. "Local Secretary". */
   name: string;
   /** One sentence: what this person does in the system. */
   summary: string;
@@ -49,19 +49,19 @@ export const GUIDES_UPDATED = '2026-09-29';
 export const GUIDES: Record<GuideRole, Guide> = {
   local: {
     role: 'local',
-    name: 'Local Chairman',
+    name: 'Local Secretary',
     summary: 'You list every school and workplace where members of your GNAT local work.',
-    pdf: '/guides/GNAT-Mapping-Guide-Local-Chairman.pdf',
+    pdf: '/guides/GNAT-Mapping-Guide-Local-Secretary.pdf',
     steps: [
       {
         icon: 'link',
         title: 'Open your link',
-        body: `Your District Chairman sends you a link and an access code by WhatsApp or SMS. Tap the link, or go to ${SITE} and type the code. Keep the code private: anyone who has it can change your local.`,
+        body: `Your District Secretary sends you a link and an access code by WhatsApp or SMS. Tap the link, or go to ${SITE} and type the code. Keep the code private: anyone who has it can change your local.`,
       },
       {
         icon: 'user',
         title: 'Add your details',
-        body: 'Step 1, Chairman: enter your name and phone number, then tap Save & continue.',
+        body: 'Step 1, Secretary: enter your name and phone number, then tap Save & continue.',
       },
       {
         icon: 'list',
@@ -87,16 +87,16 @@ export const GUIDES: Record<GuideRole, Guide> = {
     tips: [
       'Your work is saved as you go. If the network drops, it stays on your phone until you are back online.',
       'Come back any time with the same link or code, on any phone.',
-      'Lost your code? Ask your District Chairman or the Regional Secretary to send it again.',
+      'Lost your code? Ask your District Secretary or the Regional Secretary to send it again.',
       'List each workplace once, with its correct category.',
     ],
   },
 
   district: {
     role: 'district',
-    name: 'District Chairman',
-    summary: 'You set up your GNAT district, add its locals, and send each Local Chairman their access code.',
-    pdf: '/guides/GNAT-Mapping-Guide-District-Chairman.pdf',
+    name: 'District Secretary',
+    summary: 'You set up your GNAT district, add your Local Secretaries and send each one their access code.',
+    pdf: '/guides/GNAT-Mapping-Guide-District-Secretary.pdf',
     steps: [
       {
         icon: 'link',
@@ -106,7 +106,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       {
         icon: 'user',
         title: 'Add your details',
-        body: 'Step 1, Chairman: your name and phone number, so the Regional Secretary can reach you. Tap Save & continue.',
+        body: 'Step 1, Secretary: your name and phone number, so the Regional Secretary can reach you. Tap Save & continue.',
       },
       {
         icon: 'map',
@@ -114,19 +114,19 @@ export const GUIDES: Record<GuideRole, Guide> = {
         body: 'Step 2: tick the political administrative district(s) your GNAT district covers. Type in the search box to find them quickly.',
       },
       {
-        icon: 'list',
-        title: 'Add your locals',
-        body: 'Step 3, Locals: add each GNAT local with its Local Chairman’s name and phone number, then tap Add local. Each local gets its own access code.',
+        icon: 'userPlus',
+        title: 'Add your Local Secretaries',
+        body: 'Tap Add Local Secretary (at the top of every step). Enter the local’s name and its secretary’s name and phone number, then tap Add Local Secretary. Their code appears straight away: tap WhatsApp or SMS to send it from your own phone.',
       },
       {
-        icon: 'share',
-        title: 'Send each code',
-        body: 'Tap Share code on a local to send its code by WhatsApp or SMS from your own phone, or copy it. The message is written for you: just tap send.',
+        icon: 'userMinus',
+        title: 'Remove a Local Secretary',
+        body: 'Tap Remove secretary on a local: their code stops working at once and the workplaces already listed are kept. Then tap Add secretary for the new one.',
       },
       {
         icon: 'track',
         title: 'Follow up',
-        body: 'Each local shows In progress, Submitted, Returned or Approved. If a Local Chairman cannot do it, tap Fill workplaces and list them on their behalf.',
+        body: 'Each local shows In progress, Submitted, Returned or Approved. If a Local Secretary cannot do it, tap Fill workplaces and list them on their behalf.',
       },
       {
         icon: 'send',
@@ -140,7 +140,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       },
     ],
     tips: [
-      'Code shared with the wrong person? Open Share code on that local and tap Make new code: the old one stops working at once. Then send the new one.',
+      'Code sent to the wrong person? Open Share code on that local and tap Make new code, then send the new one.',
       'Everything is saved as you go. Stop and continue later on any phone.',
       'The system never sends messages or uses your credit by itself. Your normal SMS rate applies to SMS you send.',
     ],
@@ -149,7 +149,8 @@ export const GUIDES: Record<GuideRole, Guide> = {
   admin: {
     role: 'admin',
     name: 'Regional Secretary',
-    summary: 'You run the mapping for your region: invite District Chairmen, follow progress, review submissions and download the results.',
+    summary:
+      'You run the mapping for your region: add the District Secretaries, follow progress, review submissions and download the results.',
     pdf: '/guides/GNAT-Mapping-Guide-Regional-Secretary.pdf',
     steps: [
       {
@@ -158,9 +159,14 @@ export const GUIDES: Record<GuideRole, Guide> = {
         body: `Go to ${SITE}/admin and sign in with your email or phone number. The first time, add your email and choose your own password.`,
       },
       {
-        icon: 'share',
-        title: 'Invite District Chairmen',
-        body: 'Settings › Share on WhatsApp posts one message, with the link and registration key, to your District Chairmen’s group.',
+        icon: 'userPlus',
+        title: 'Add District Secretaries',
+        body: 'Tap Add District Secretary (top of the menu, and on Overview). Enter the GNAT district and the secretary’s name and WhatsApp number, then send them the code that appears. Or tap Share sign-up link to post the registration link and key in their WhatsApp group.',
+      },
+      {
+        icon: 'userMinus',
+        title: 'Remove a District Secretary',
+        body: 'On Districts, tap Remove secretary. Their code stops working at once. The district’s locals and workplaces are kept; tap Add secretary to add the new one. A district with nothing filled in yet is removed completely.',
       },
       {
         icon: 'track',
@@ -170,7 +176,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       {
         icon: 'review',
         title: 'Review submissions',
-        body: 'Open a submitted district to check its locals and workplaces. Tap Approve district, or Return for correction with a short note the chairman will see.',
+        body: 'Open a submitted district to check its locals and workplaces. Tap Approve district, or Return for correction with a short note the District Secretary will see.',
       },
       {
         icon: 'key',
@@ -185,7 +191,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       {
         icon: 'tree',
         title: 'Structure and Activity',
-        body: 'Structure shows the full tree: districts, locals and workplaces. Activity shows who changed what, and when.',
+        body: 'Structure shows districts, locals and workplaces as a tree. Activity shows who changed what, and when.',
       },
     ],
     tips: [
@@ -238,7 +244,7 @@ export const GUIDES: Record<GuideRole, Guide> = {
       },
     ],
     tips: [
-      'Districts, locals, workplaces, chairmen’s details and downloads are only for each region’s admins. The system does not show them to the super admin.',
+      'Districts, locals, workplaces, names and phone numbers, and downloads are only for each region’s admins. The system does not show them to the super admin.',
       'Open a region under System only when its Regional Secretary has an admin account.',
       'The temporary password in the server settings works only once: after your first sign-in, your own password replaces it.',
     ],

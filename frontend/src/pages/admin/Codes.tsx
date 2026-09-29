@@ -67,7 +67,9 @@ export default function Codes() {
         }
       />
       <div className="no-print mb-3">
-        <Alert tone="warn">Codes let anyone edit that district's or local's form. Share each code only with its chairman.</Alert>
+        <Alert tone="warn">
+          Codes let anyone edit that district's or local's form. Share each code only with the secretary it belongs to.
+        </Alert>
       </div>
       <div className="no-print mb-3 flex flex-wrap gap-2">
         <Input
@@ -94,7 +96,7 @@ export default function Codes() {
           <thead>
             <tr className="border-b border-line text-left text-ink-3">
               <th className="px-3 py-2 font-semibold">District / Local</th>
-              <th className="px-3 py-2 font-semibold">Chairman</th>
+              <th className="px-3 py-2 font-semibold">Secretary</th>
               <th className="px-3 py-2 font-semibold">Code</th>
               <th className="px-3 py-2 font-semibold">Status</th>
               <th className="no-print px-3 py-2" />
@@ -145,7 +147,7 @@ export default function Codes() {
   );
 }
 
-/** Cut-out slips, two per row, for handing codes to chairmen in person. */
+/** Cut-out slips, two per row, for handing codes to secretaries in person. */
 function Slips({ rows, region }: { rows: CodeRow[]; region: string }) {
   const host = window.location.host;
   return (
@@ -157,7 +159,7 @@ function Slips({ rows, region }: { rows: CodeRow[]; region: string }) {
             <p className="text-xs">GNAT Mapping · {region} Region</p>
             <p className="mt-1 text-base font-bold">{r.kind === 'district' ? `${r.name} District` : `${r.name} Local`}</p>
             {r.kind === 'local' && <p className="text-xs">{r.district} District</p>}
-            {r.chair_name && <p className="text-xs">Chairman: {r.chair_name}</p>}
+            {r.chair_name && <p className="text-xs">Secretary: {r.chair_name}</p>}
             <ol className="mt-2 list-decimal pl-5 text-sm">
               <li>
                 On your phone, open <b>{host}</b>

@@ -63,7 +63,7 @@ export async function sendXlsx(res: Response, regionId: number, regionName: stri
   ds.columns = [
     { header: 'GNAT District', key: 'name', width: 28 },
     { header: 'Political Admin. District(s)', key: 'political', width: 48 },
-    { header: 'Chairman', key: 'chair_name', width: 24 },
+    { header: 'District Secretary', key: 'chair_name', width: 24 },
     { header: 'Phone', key: 'chair_phone', width: 16 },
     { header: 'Name / Group', key: 'chair_group', width: 22 },
     { header: 'Locals', key: 'locals', width: 8 },
@@ -91,7 +91,7 @@ export async function sendXlsx(res: Response, regionId: number, regionName: stri
   ls.columns = [
     { header: 'GNAT District', key: 'district', width: 28 },
     { header: 'GNAT Local', key: 'name', width: 28 },
-    { header: 'Chairman', key: 'chair_name', width: 24 },
+    { header: 'Local Secretary', key: 'chair_name', width: 24 },
     { header: 'Phone', key: 'chair_phone', width: 16 },
     { header: 'Workplaces', key: 'units', width: 11 },
     { header: 'Status', key: 'status', width: 12 },
@@ -148,7 +148,7 @@ export async function sendCsv(res: Response, regionId: number, regionName: strin
     header = [
       'GNAT District',
       'Political Admin. District(s)',
-      'Chairman',
+      'District Secretary',
       'Phone',
       'Name / Group',
       'Locals',
@@ -168,7 +168,7 @@ export async function sendCsv(res: Response, regionId: number, regionName: strin
       fmtDate(d.submitted_at),
     ]);
   } else if (level === 'locals') {
-    header = ['GNAT District', 'GNAT Local', 'Chairman', 'Phone', 'Workplaces', 'Status', 'Submitted'];
+    header = ['GNAT District', 'GNAT Local', 'Local Secretary', 'Phone', 'Workplaces', 'Status', 'Submitted'];
     rows = data.locals.map((l) => [
       l.district,
       l.name,
@@ -377,7 +377,7 @@ export async function sendPdf(res: Response, regionId: number, regionName: strin
       .fillColor(grey)
       .font('Inter')
       .fontSize(8.5)
-      .text(`${STATUS_LABEL[d.status]} · Chairman: ${d.chair_name ?? '-'}`);
+      .text(`${STATUS_LABEL[d.status]} · Secretary: ${d.chair_name ?? '-'}`);
     if (d.political) doc.fillColor(grey).fontSize(8.5).text(`Covers: ${d.political}`, left, doc.y, { width });
     for (const l of data.locals.filter((x) => x.district === d.name)) {
       if (doc.y > doc.page.height - 80) doc.addPage();

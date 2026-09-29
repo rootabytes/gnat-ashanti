@@ -80,7 +80,7 @@ export default function Register() {
           </Card>
         ) : (
           meta && (
-            <Card title="Register your GNAT district" subtitle="For District Chairmen. Each GNAT district registers only once.">
+            <Card title="Register your GNAT district" subtitle="For District Secretaries. Each GNAT district registers only once.">
               <form onSubmit={submit} className="space-y-4">
                 {meta.regions.length > 1 ? (
                   <Field label="GNAT Region" htmlFor="region">
@@ -104,7 +104,7 @@ export default function Register() {
                 {region?.requiresKey && (
                   <TextField
                     label="Registration key"
-                    hint="The Regional Secretary shares this in the chairmen's group."
+                    hint="The Regional Secretary shares this in the District Secretaries' group."
                     value={form.registrationKey}
                     onChange={set('registrationKey')}
                     required
@@ -120,7 +120,7 @@ export default function Register() {
                   minLength={2}
                 />
                 <TextField
-                  label="Your full name (District Chairman)"
+                  label="Your full name (District Secretary)"
                   value={form.chairName}
                   onChange={set('chairName')}
                   required

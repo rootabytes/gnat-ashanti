@@ -9,7 +9,7 @@ import { ASHANTI_POLITICAL_DISTRICTS, GNAT_REGIONS } from './reference';
 
 // The demo site lets testers try every role with one tap. Its passwords and
 // access codes are shown on a public page, so it must never share a database
-// with real chairmen's data. prepareDatabase() enforces that both ways.
+// with real secretaries' data. prepareDatabase() enforces that both ways.
 
 export const DEMO_PASSWORD = 'GnatDemo-2026';
 export const DEMO_REGISTRATION_KEY = 'demo2026';
@@ -131,7 +131,7 @@ const DISTRICTS: DemoDistrict[] = [
     status: 'returned',
     daysAgo: 7,
     political: ['Offinso'],
-    note: 'Please add the Kokote local and the chairman phone numbers.',
+    note: 'Please add the Kokote local and the secretary phone numbers.',
     locals: [
       {
         name: 'Offinso Township',

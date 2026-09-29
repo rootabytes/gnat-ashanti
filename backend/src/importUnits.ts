@@ -4,9 +4,9 @@ import { HttpError, normalizeGps } from './http';
 import { CATEGORY_LABELS, WORKPLACE_CATEGORIES, WorkplaceCategory } from './reference';
 import { MAX_UNITS_PER_LOCAL } from './services';
 
-// Chairmen who already keep their schools in a spreadsheet upload it instead of
+// Secretaries who already keep their schools in a spreadsheet upload it instead of
 // typing 200 names on a phone. The file is only parsed here: the rows go back to
-// the editor for the chairman to check, and are saved through the normal units API.
+// the editor for the secretary to check, and are saved through the normal units API.
 
 export interface ImportedUnit {
   name: string;
@@ -152,7 +152,7 @@ export async function parseUnitsFile(buf: Buffer): Promise<{ units: ImportedUnit
   return { units, notes };
 }
 
-/** The spreadsheet chairmen can fill in: a category dropdown and a GPS column. */
+/** The spreadsheet secretaries can fill in: a category dropdown and a GPS column. */
 export async function sendUnitsTemplate(res: Response) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'GNAT Mapping';

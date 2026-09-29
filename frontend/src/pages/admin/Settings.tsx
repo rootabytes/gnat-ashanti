@@ -5,6 +5,7 @@ import { whatsappLink } from '../../lib/format';
 import type { PoliticalDistrict } from '../../lib/types';
 import { AccountCard, AdminsCard } from './Account';
 import { PageTitle, useAdmin } from './AdminApp';
+import type { AdminRegion } from './AdminApp';
 
 export default function Settings() {
   return (
@@ -18,20 +19,26 @@ export default function Settings() {
   );
 }
 
+/** The message for the District Secretaries' WhatsApp group: the registration link and key. */
+export function registrationMessage(region: AdminRegion) {
+  return (
+    `GNAT ${region.name} Region: Structure Mapping\n\n` +
+    `District Secretaries, please register your GNAT district and fill in the mapping form here:\n${window.location.origin}/register\n` +
+    (region.registration_key ? `\nRegistration key: ${region.registration_key}\n` : '') +
+    `\nAfter registering you will get an access code. Keep it safe; you need it to continue later and to add your Local Secretaries.`
+  );
+}
+
 function RegistrationCard() {
   const { region, reloadMe } = useAdmin();
   const toast = useToast();
   const [key, setKey] = useState(region.registration_key ?? '');
   const [busy, setBusy] = useState(false);
   const link = `${window.location.origin}/register`;
-  const message =
-    `GNAT ${region.name} Region: Structure Mapping\n\n` +
-    `District Chairmen, please register your GNAT district and fill in the mapping form here:\n${link}\n` +
-    (region.registration_key ? `\nRegistration key: ${region.registration_key}\n` : '') +
-    `\nAfter registering you will get an access code. Keep it safe; you need it to continue later and to create codes for your Local Chairmen.`;
+  const message = registrationMessage(region);
 
   return (
-    <Card title="District registration" subtitle="District Chairmen register their GNAT district themselves using this link.">
+    <Card title="District registration" subtitle="District Secretaries register their GNAT district themselves using this link.">
       <div className="space-y-4">
         <div className="rounded-lg bg-surface-2 p-3 text-sm">
           <p className="text-ink-3">Registration link</p>
@@ -72,7 +79,7 @@ function RegistrationCard() {
           </Alert>
         )}
         <div>
-          <p className="mb-2 text-sm font-semibold text-ink">Message for the District Chairmen WhatsApp group</p>
+          <p className="mb-2 text-sm font-semibold text-ink">Message for the District Secretaries WhatsApp group</p>
           <pre className="whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-3 text-sm text-ink-2">{message}</pre>
           <div className="mt-2 flex gap-2">
             <WhatsAppButton size="md" href={whatsappLink(message)} label="Share on WhatsApp" />
@@ -96,7 +103,10 @@ function PoliticalCard() {
   }, [q, toast]);
 
   return (
-    <Card title="Political administrative districts" subtitle="The list chairmen choose from. Pre-loaded with the region's MMDAs.">
+    <Card
+      title="Political administrative districts"
+      subtitle="The list District Secretaries choose from. Pre-loaded with the region's MMDAs."
+    >
       {!list ? (
         <Loading />
       ) : (

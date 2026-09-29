@@ -30,7 +30,7 @@ export default function Home() {
     }
   }
 
-  // Links shared on WhatsApp carry ?code=… so chairmen sign in with one tap.
+  // Links shared on WhatsApp carry ?code=… so secretaries sign in with one tap.
   useEffect(() => {
     const c = params.get('code');
     if (c && !tried.current) {
@@ -73,7 +73,7 @@ export default function Home() {
             <span>
               <span className="block font-bold text-ink">Testing the system?</span>
               <span className="block text-sm text-ink-2">
-                Open the demo page to sign in as the Regional Secretary, a District Chairman or a Local Chairman with one tap.
+                Open the demo page to sign in as the Regional Secretary, a District Secretary or a Local Secretary with one tap.
               </span>
             </span>
           </Link>
@@ -109,7 +109,7 @@ export default function Home() {
               Enter your access code
             </span>
           }
-          subtitle="The code the Regional Secretary or your District Chairman sent you."
+          subtitle="The code the Regional Secretary or your District Secretary sent you."
         >
           <form
             onSubmit={(e) => {
@@ -145,7 +145,7 @@ export default function Home() {
         <Card className="mt-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold text-ink">District Chairman without a code?</p>
+              <p className="font-semibold text-ink">District Secretary without a code?</p>
               <p className="text-sm text-ink-3">Register your GNAT district to get one.</p>
             </div>
             <Link
@@ -162,13 +162,13 @@ export default function Home() {
           <p className="font-semibold text-ink">How it works</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5">
             <li>
-              <b>District Chairman</b>: confirms the political districts covered and lists the GNAT locals.
+              <b>District Secretary</b>: confirms the political districts covered and lists the GNAT locals.
             </li>
             <li>
-              Each local gets its own code. Send it to the <b>Local Chairman</b> on WhatsApp.
+              Each local gets its own code. Send it to the <b>Local Secretary</b> on WhatsApp.
             </li>
             <li>
-              <b>Local Chairman</b>: lists the basic units / workplaces in the local.
+              <b>Local Secretary</b>: lists the basic units / workplaces in the local.
             </li>
             <li>Both submit. The Regional Secretary reviews everything.</li>
           </ol>

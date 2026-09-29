@@ -24,7 +24,7 @@ export function codeLookup(code: string): string {
   return crypto.createHmac('sha256', lookupKey).update(normalizeCode(code)).digest('hex');
 }
 
-/** Codes are also stored encrypted so the admin and district chairmen can re-share them. */
+/** Codes are also stored encrypted so the admin and District Secretaries can re-share them. */
 export function encryptCode(code: string): string {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', encKey, iv);

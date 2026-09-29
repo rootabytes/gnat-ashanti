@@ -10,8 +10,8 @@ import type { LocalDetail, Unit } from '../../lib/types';
 import { useMeta } from '../../lib/useMeta';
 
 /**
- * The three-step local form. `base` is '/local' for the local chairman, or
- * '/district/locals/:id' when the district chairman fills it on their behalf.
+ * The three-step local form. `base` is '/local' for the local secretary, or
+ * '/district/locals/:id' when the District Secretary fills it on their behalf.
  */
 export function LocalFlow({ base, detailsPath, header }: { base: string; detailsPath: string | null; header?: ReactNode }) {
   const { meta } = useMeta();
@@ -57,7 +57,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
   const editable = data.status === 'draft' || data.status === 'returned';
   const detailsDone = !!(data.chairName && data.chairPhone);
   const steps = [
-    { label: 'Chairman', done: detailsDone },
+    { label: 'Secretary', done: detailsDone },
     { label: 'Workplaces', done: unitCount > 0 },
     { label: 'Review & submit', done: data.status === 'submitted' || data.status === 'approved' },
   ];
@@ -126,7 +126,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
         <Stepper steps={steps} current={step} onSelect={setStep} />
 
         {step === 0 && (
-          <Card title="Local Chairman" subtitle="Who is responsible for this local?">
+          <Card title="Local Secretary" subtitle="Who is responsible for this local?">
             <form
               className="space-y-4"
               onSubmit={async (e) => {
@@ -188,7 +188,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
           <Card title="Review & submit">
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-ink-3">Local Chairman</dt>
+                <dt className="text-ink-3">Local Secretary</dt>
                 <dd className="font-semibold text-ink">{data.chairName || <span className="text-danger">Missing</span>}</dd>
               </div>
               <div>
@@ -215,7 +215,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
             {editable && (!detailsDone || !data.units.length) && (
               <div className="mt-4">
                 <Alert tone="warn" title="Not ready yet">
-                  {!detailsDone && <p>Add the chairman's name and phone number (step 1).</p>}
+                  {!detailsDone && <p>Add the secretary's name and phone number (step 1).</p>}
                   {!data.units.length && <p>Add at least one workplace (step 2).</p>}
                 </Alert>
               </div>

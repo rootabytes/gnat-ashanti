@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Pencil, Plus, RotateCcw, Send, Share2, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pencil, RotateCcw, Send, Share2, Trash2, UserMinus, UserPlus } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ChairShell, PoliticalPicker, StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
 import {
@@ -48,6 +48,7 @@ function DistrictFlow() {
   const [busy, setBusy] = useState(false);
   const [picked, setPicked] = useState<number[]>([]);
   const [pickDirty, setPickDirty] = useState(false);
+  const [focusAdd, setFocusAdd] = useState(false);
 
   const setStep = (i: number) => {
     setStepState(i);
@@ -84,7 +85,7 @@ function DistrictFlow() {
   const editable = d.status === 'draft' || d.status === 'returned';
   const detailsDone = !!(d.chairName && d.chairPhone);
   const steps = [
-    { label: 'Chairman', done: detailsDone },
+    { label: 'Secretary', done: detailsDone },
     { label: 'Political districts', done: d.politicalDistricts.length > 0 },
     { label: 'Locals', done: d.locals.length > 0 },
     { label: 'Review & submit', done: d.status === 'submitted' || d.status === 'approved' },
@@ -177,10 +178,31 @@ function DistrictFlow() {
       </TitleRow>
       <div className="space-y-4">
         <StatusBanner status={d.status} adminNote={d.adminNote} what="district" onReopen={reopen} />
+        {editable && step !== 2 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-brand bg-brand-soft p-3 sm:p-4">
+            <div className="min-w-0">
+              <p className="font-bold text-ink">Your Local Secretaries</p>
+              <p className="text-sm text-ink-2">
+                {d.locals.length
+                  ? `${plural(d.locals.length, 'local')} added so far.`
+                  : 'Add each local and its secretary, then send them their code.'}
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                setFocusAdd(true);
+                setStep(2);
+              }}
+            >
+              <UserPlus className="h-4 w-4" aria-hidden />
+              Add Local Secretary
+            </Button>
+          </div>
+        )}
         <Stepper steps={steps} current={step} onSelect={(i) => (step === 1 && pickDirty ? savePolitical(i) : setStep(i))} />
 
         {step === 0 && (
-          <Card title="District Chairman" subtitle="Your contact details, so the Regional Secretary can reach you.">
+          <Card title="District Secretary" subtitle="Your contact details, so the Regional Secretary can reach you.">
             <form
               className="space-y-4"
               onSubmit={(e) => {
@@ -245,13 +267,22 @@ function DistrictFlow() {
           </Card>
         )}
 
-        {step === 2 && <LocalsStep d={d} editable={editable} onChange={hydrate} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
+        {step === 2 && (
+          <LocalsStep
+            d={d}
+            editable={editable}
+            focusAdd={focusAdd}
+            onChange={hydrate}
+            onBack={() => setStep(1)}
+            onNext={() => setStep(3)}
+          />
+        )}
 
         {step === 3 && (
           <Card title="Review & submit">
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-ink-3">District Chairman</dt>
+                <dt className="text-ink-3">District Secretary</dt>
                 <dd className="font-semibold text-ink">{d.chairName || <span className="text-danger">Missing</span>}</dd>
                 <dd className="text-ink-2">{fmtPhone(d.chairPhone)}</dd>
               </div>
@@ -320,12 +351,14 @@ function MyCode({ d }: { d: DistrictDetail }) {
 function LocalsStep({
   d,
   editable,
+  focusAdd,
   onChange,
   onBack,
   onNext,
 }: {
   d: DistrictDetail;
   editable: boolean;
+  focusAdd: boolean;
   onChange: (d: DistrictDetail) => void;
   onBack: () => void;
   onNext: () => void;
@@ -337,6 +370,30 @@ function LocalsStep({
   const [err, setErr] = useState<string | null>(null);
   const [editing, setEditing] = useState<LocalSummary | null>(null);
   const [sharing, setSharing] = useState<LocalSummary | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focusAdd) nameRef.current?.focus();
+  }, [focusAdd]);
+
+  async function removeSecretary(l: LocalSummary) {
+    const who = l.chairName ?? 'the Local Secretary';
+    const deletes = !l.unitCount && editable;
+    const { ok } = await confirm({
+      title: `Remove ${who}?`,
+      body: deletes
+        ? `${who} loses access at once. Nothing is listed for ${l.name} yet, so the local is removed too. You can add it again.`
+        : `${who} loses access at once: the ${l.name} code stops working and they are signed out. Its ${plural(l.unitCount, 'workplace')} ${l.unitCount === 1 ? 'is' : 'are'} kept, so you can add a new secretary.`,
+      confirm: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      onChange(await api.chair.post<DistrictDetail>(`/district/locals/${l.id}/remove-secretary`));
+      toast(deletes ? `${l.name} removed` : `${who} removed from ${l.name}`);
+    } catch (e: any) {
+      toast(e.message, 'error');
+    }
+  }
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -365,11 +422,20 @@ function LocalsStep({
   return (
     <Card
       title="02 · GNAT Locals"
-      subtitle="Add every GNAT local in this district. Each local gets its own access code for its Local Chairman to list the workplaces (step 03)."
+      subtitle="Add every GNAT local in this district. Each local gets its own access code for its Local Secretary to list the workplaces (step 03)."
     >
       {editable && (
-        <form onSubmit={add} className="space-y-3 rounded-xl border border-line bg-surface-2/60 p-3 sm:p-4">
+        <form
+          onSubmit={add}
+          className="space-y-3 rounded-xl border-2 border-brand bg-brand-soft p-3 shadow-sm sm:p-4"
+          aria-labelledby="add-local"
+        >
+          <h3 id="add-local" className="flex items-center gap-2 text-lg font-extrabold text-ink">
+            <UserPlus className="h-5 w-5 text-brand" aria-hidden />
+            Add a Local Secretary
+          </h3>
           <TextField
+            ref={nameRef}
             label="Local name"
             placeholder="e.g. Ayalolo"
             value={form.name}
@@ -379,12 +445,12 @@ function LocalsStep({
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField
-              label="Local Chairman (optional)"
+              label="Local Secretary's full name"
               value={form.chairName}
               onChange={(e) => setForm({ ...form, chairName: e.target.value })}
             />
             <TextField
-              label="Chairman phone (optional)"
+              label="Local Secretary's phone"
               type="tel"
               inputMode="tel"
               placeholder="024 123 4567"
@@ -393,9 +459,10 @@ function LocalsStep({
             />
           </div>
           {err && <Alert tone="error">{err}</Alert>}
-          <Button type="submit" busy={busy} disabled={form.name.trim().length < 2}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Add local
+          <p className="text-xs text-ink-3">You then get the local's code to send them on WhatsApp or SMS.</p>
+          <Button type="submit" size="lg" className="w-full sm:w-auto" busy={busy} disabled={form.name.trim().length < 2}>
+            <UserPlus className="h-5 w-5" aria-hidden />
+            Add Local Secretary
           </Button>
         </form>
       )}
@@ -411,7 +478,7 @@ function LocalsStep({
 
       {d.locals.length === 0 ? (
         <div className="mt-2">
-          <Empty title="No locals yet">Add the first local above.</Empty>
+          <Empty title="No locals yet">Add the first Local Secretary above.</Empty>
         </div>
       ) : (
         <ul className="mt-2 space-y-2">
@@ -421,7 +488,7 @@ function LocalsStep({
                 <div className="min-w-0">
                   <p className="font-bold text-ink">{l.name}</p>
                   <p className="text-sm text-ink-3">
-                    {l.chairName ? `${l.chairName}${l.chairPhone ? ` · ${fmtPhone(l.chairPhone)}` : ''}` : 'No chairman yet'} ·{' '}
+                    {l.chairName ? `${l.chairName}${l.chairPhone ? ` · ${fmtPhone(l.chairPhone)}` : ''}` : 'No secretary yet'} ·{' '}
                     {plural(l.unitCount, 'workplace')}
                   </p>
                   {l.status === 'returned' && l.adminNote && (
@@ -445,6 +512,17 @@ function LocalsStep({
                   <Pencil className="h-4 w-4" aria-hidden />
                   Edit
                 </Button>
+                {l.chairName ? (
+                  <Button size="sm" variant="ghost" className="text-danger" onClick={() => removeSecretary(l)}>
+                    <UserMinus className="h-4 w-4" aria-hidden />
+                    Remove secretary
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => setEditing(l)}>
+                    <UserPlus className="h-4 w-4" aria-hidden />
+                    Add secretary
+                  </Button>
+                )}
                 {editable && (
                   <Button
                     size="sm"
@@ -468,7 +546,7 @@ function LocalsStep({
                     }}
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
-                    Delete
+                    Delete local
                   </Button>
                 )}
               </div>
@@ -525,7 +603,7 @@ function ShareLocalModal({
     <Modal open onClose={onClose} title={`Send ${local.name} its code`}>
       <div className="space-y-4">
         <p className="text-sm text-ink-2">
-          Send this to the Local Chairman from your own WhatsApp or SMS. The link opens their form directly. You can also read the code to
+          Send this to the Local Secretary from your own WhatsApp or SMS. The link opens their form directly. You can also read the code to
           them on a call: it has no easily confused letters or numbers.
         </p>
         <div className="rounded-xl border-2 border-dashed border-brand bg-brand-soft p-4 text-center">
@@ -630,9 +708,9 @@ function EditLocalModal({
           onChange={(e) => setF({ ...f, name: e.target.value })}
           hint={!canRename ? 'Reopen the district to rename a local.' : undefined}
         />
-        <TextField label="Local Chairman" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
+        <TextField label="Local Secretary" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
         <TextField
-          label="Chairman phone"
+          label="Secretary phone"
           type="tel"
           inputMode="tel"
           value={f.chairPhone}

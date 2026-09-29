@@ -29,24 +29,24 @@ await closeGuide(p, 'Regional Secretary');
 console.log('✓ Regional Secretary');
 
 await p.goto(`${WEB}/demo`);
-await card('District Chairmen').locator('li', { hasText: 'Kumasi Metro' }).getByRole('button', { name: 'Sign in' }).click();
+await card('District Secretaries').locator('li', { hasText: 'Kumasi Metro' }).getByRole('button', { name: 'Sign in' }).click();
 await p.getByRole('heading', { name: 'Kumasi Metro District' }).waitFor();
-await closeGuide(p, 'District Chairman');
-console.log('✓ District Chairman');
+await closeGuide(p, 'District Secretary');
+console.log('✓ District Secretary');
 
 await p.goto(`${WEB}/demo`);
-await card('Local Chairmen').locator('li', { hasText: 'Bantama' }).getByRole('button', { name: 'Sign in' }).click();
+await card('Local Secretaries').locator('li', { hasText: 'Bantama' }).getByRole('button', { name: 'Sign in' }).click();
 await p.getByRole('heading', { name: 'Bantama Local' }).waitFor();
-await closeGuide(p, 'Local Chairman');
+await closeGuide(p, 'Local Secretary');
 await p.getByLabel('GPS address of Bantama M/A JHS').waitFor();
-console.log('✓ Local Chairman');
+console.log('✓ Local Secretary');
 
 await p.goto(`${WEB}/demo`);
-const before = await card('District Chairmen').locator('.code-font').first().textContent();
+const before = await card('District Secretaries').locator('.code-font').first().textContent();
 await p.getByRole('button', { name: 'Reset demo data' }).click();
 await p.getByRole('dialog').getByRole('button', { name: 'Reset' }).click();
 await p.getByText('Demo data reset').waitFor();
-const after = await card('District Chairmen').locator('.code-font').first().textContent();
+const after = await card('District Secretaries').locator('.code-font').first().textContent();
 if (before === after) errors.push('reset did not issue new codes');
 console.log('✓ reset');
 

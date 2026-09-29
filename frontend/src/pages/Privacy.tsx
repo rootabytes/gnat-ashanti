@@ -34,14 +34,17 @@ export default function Privacy() {
         <Section title="What we collect">
           <List
             items={[
-              ['District Chairmen', 'Name, phone number and, if given, a name or group. You enter these when you register.'],
-              ['Local Chairmen', 'Name and phone number, entered by you or by your District Chairman.'],
-              ['Regional Secretary and other admins', 'Name, email address, a scrambled (hashed) password, and when they last signed in.'],
+              ['District Secretaries', 'Name, phone number and, if given, a name or group. You enter these when you register.'],
+              ['Local Secretaries', 'Name and phone number, entered by you or by your District Secretary.'],
+              [
+                'Regional Secretary and other admins',
+                'Name, phone number, email address, a scrambled (hashed) password, and when they last signed in.',
+              ],
               [
                 'Workplaces',
                 'School and workplace names, their category, and, if given, their Ghana Post GPS address. These describe places, not people.',
               ],
-              ['Activity log', 'What was changed and when, and by which chairman or admin, so mistakes can be traced and corrected.'],
+              ['Activity log', 'What was changed and when, and by which secretary or admin, so mistakes can be traced and corrected.'],
               ['Server records', 'The time, page and result of each request. Not what you typed, and not your IP address.'],
             ]}
           />
@@ -53,7 +56,7 @@ export default function Privacy() {
 
         <Section title="Why we use it">
           <p>
-            Only to map GNAT's structure (region, districts, locals and workplaces) and to contact chairmen about their submissions. You
+            Only to map GNAT's structure (region, districts, locals and workplaces) and to contact secretaries about their submissions. You
             give the details for this purpose when you register or fill in the form. We never sell them, never use them for marketing, and
             never use them for anything else.
           </p>
@@ -67,16 +70,16 @@ export default function Privacy() {
                 'Everything in their region, including downloads for GNAT use. Every download is logged.',
               ],
               [
-                'District Chairman',
-                'Their own district and its locals, including the Local Chairmen’s names, phone numbers and access codes.',
+                'District Secretary',
+                'Their own district and its locals, including the Local Secretaries’s names, phone numbers and access codes.',
               ],
-              ['Local Chairman', 'Their own local only.'],
+              ['Local Secretary', 'Their own local only.'],
               [ROOTABYTES.name, 'Only what is needed to run, support and fix the system.'],
             ]}
           />
           <p className="mt-3">Nobody else, unless the law requires it.</p>
           <p className="mt-3">
-            <b>If you enter someone else's details</b>, for example a Local Chairman's phone number, please tell them and share this notice
+            <b>If you enter someone else's details</b>, for example a Local Secretary's phone number, please tell them and share this notice
             with them.
           </p>
         </Section>
@@ -98,7 +101,7 @@ export default function Privacy() {
         <Section title="How long we keep it">
           <p>
             Contact details are kept only while GNAT needs them for the mapping exercise. Within 12 months after the Regional Secretary
-            approves the final structure, chairmen's names and phone numbers are deleted or anonymised. The approved list of districts,
+            approves the final structure, secretaries' names and phone numbers are deleted or anonymised. The approved list of districts,
             locals and workplaces is GNAT's official record and is kept.
           </p>
         </Section>
