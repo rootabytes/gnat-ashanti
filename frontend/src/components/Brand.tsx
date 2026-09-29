@@ -54,6 +54,10 @@ export function Footer() {
           Privacy notice
         </Link>
         <span aria-hidden>·</span>
+        <Link to="/about" className="inline-block py-1 font-semibold text-ink-2 hover:text-brand">
+          About
+        </Link>
+        <span aria-hidden>·</span>
         <a href={ROOTABYTES.url} target="_blank" rel="noopener" className="inline-block py-1 text-ink-2 hover:text-brand">
           Built by <b className="font-bold">{ROOTABYTES.name}</b>
         </a>

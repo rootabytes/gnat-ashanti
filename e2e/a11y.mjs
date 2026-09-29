@@ -47,6 +47,7 @@ for (const scheme of ['light', 'dark']) {
   await audit(phone, `home${tag}`, `${WEB}/`, (p) => p.getByRole('heading', { name: /Structure/ }).waitFor());
   await audit(phone, `register${tag}`, `${WEB}/register`, (p) => p.getByRole('button', { name: 'Register and get my code' }).waitFor());
   await audit(phone, `privacy${tag}`, `${WEB}/privacy`, (p) => p.getByRole('heading', { name: 'Privacy notice' }).waitFor());
+  await audit(phone, `about${tag}`, `${WEB}/about`, (p) => p.getByRole('heading', { name: 'About GNAT Mapping' }).waitFor());
   if (localCode) {
     await audit(phone, `local form${tag}`, `${WEB}/?code=${localCode}`, (p) =>
       p.getByRole('heading', { name: 'Basic units / workplaces' }).waitFor(),

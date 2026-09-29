@@ -6,7 +6,7 @@ A web system for the Ghana National Association of Teachers (GNAT) to map its st
 - **Local Secretaries** get a code per local (sent on WhatsApp by their District Secretary) and list the workplaces in their local (03), each tagged with one of the 11 workplace categories.
 - **Regional Secretary** (admin) tracks progress, reviews, approves or returns submissions, sees charts, and downloads Excel, CSV or PDF.
 
-Built and operated by [Rootabytes](https://rootabytes.com), which is registered with the Data Protection Commission of Ghana. Every page carries a "Built by Rootabytes" credit and a link to the privacy notice (`/privacy`).
+Built and operated by [Rootabytes](https://rootabytes.com), which is registered with the Data Protection Commission of Ghana. Every page carries a "Built by Rootabytes" credit and links to the privacy notice (`/privacy`) and the About page (`/about`). The system is free to GNAT Ashanti: Rootabytes builds, hosts and supports it as its in-kind contribution to the Classpiler partnership, for as long as the partnership continues, as the About page states (`IN_KIND` in `frontend/src/lib/org.ts`; no amount or end date is published).
 
 Live at `https://gnatashanti.rootabytes.com`, with a demo for testers at `https://gnatashanti-demo.rootabytes.com/demo`. Deployment: see **[DEPLOY.md](DEPLOY.md)**.
 
@@ -63,8 +63,8 @@ backend/    Node 20+ · Express 5 · TypeScript · PostgreSQL (pg) · zod · Exc
   src/openapi.ts     OpenAPI 3.1 description, served at /api/openapi.json
   test/              API tests against a real Postgres (api.test.ts, demo.test.ts)
 frontend/   React 19 · Vite · Tailwind 4 · Recharts
-  src/pages/         Home, Register, Privacy, Demo, district/, local/, admin/
-  src/lib/org.ts     Rootabytes details shown on the privacy notice
+  src/pages/         Home, Register, Privacy, About, Demo, district/, local/, admin/
+  src/lib/org.ts     Rootabytes details (privacy notice) and the in-kind terms (About page)
 e2e/        Playwright browser tests, axe accessibility audit, demo test
 ```
 

@@ -97,7 +97,7 @@ for (const phone of PHONES) {
     await guide.waitFor({ state: 'hidden' });
   };
 
-  for (const path of ['/', '/privacy', '/register', '/demo']) {
+  for (const path of ['/', '/privacy', '/about', '/register', '/demo']) {
     await page.goto(`${WEB}${path}`);
     await check(page, phone, path);
   }

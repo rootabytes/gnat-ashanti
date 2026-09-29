@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
 import { GUIDES_UPDATED, SITE } from '../../frontend/src/lib/guides';
-import { ROOTABYTES } from '../../frontend/src/lib/org';
+import { IN_KIND, ROOTABYTES } from '../../frontend/src/lib/org';
 
 const ROOT = path.join(__dirname, '..');
 const FILE = path.join(ROOT, '..', 'frontend', 'public', 'guides', 'GNAT-Mapping-How-It-Works.pdf');
@@ -316,6 +316,19 @@ function main() {
   para(
     'Tap Remove secretary: their code stops working at once, and everything already filled in is kept. Then tap Add secretary and send the new person their code. District Secretaries do the same for their Local Secretaries.',
   );
+
+  // Who pays: nobody at GNAT Ashanti. Two small lines fit in the space left on page 1.
+  doc.moveDown(0.2);
+  doc
+    .font('Inter')
+    .fontSize(9)
+    .fillColor(GREY)
+    .text(
+      `At no cost to ${IN_KIND.partner}: ${ROOTABYTES.name}’ in-kind contribution to their partnership, in recognition of ${IN_KIND.partner}’s endorsement of ${IN_KIND.app}. More: ${SITE}/about`,
+      left,
+      doc.y,
+      { width, lineGap: 1.5 },
+    );
 
   // ---------- Page 2: the data ----------
   doc.addPage();

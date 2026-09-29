@@ -1,6 +1,6 @@
 // Performance budget: what a chairman's phone downloads to open the form.
 // Sums the gzipped entry script, the scripts it preloads and the CSS, as linked
-// from dist/index.html. Lazy pages (admin, privacy, demo) are not counted.
+// from dist/index.html. Lazy pages (admin, privacy, about, demo) are not counted.
 // Run after `npm run build`; exits 1 when over budget.
 import fs from 'node:fs';
 import path from 'node:path';

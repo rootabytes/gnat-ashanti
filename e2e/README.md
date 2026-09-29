@@ -5,7 +5,7 @@ These click through the whole system the way people will use it. CI runs them on
 `flow.mjs`:
 
 1. The admin signs in with the temporary password, is made to choose their own, and sets the registration key.
-2. The footer credit links to rootabytes.com, and the privacy notice opens.
+2. The footer credit links to rootabytes.com, and the privacy notice and About page open.
 3. A District Secretary registers on a phone, picks political districts, adds 3 locals and fills one on its secretary's behalf, including a GPS address.
 4. A Local Secretary opens their WhatsApp link, pastes a list, imports a CSV (previewed, duplicates skipped), goes offline mid-edit (the work is kept and syncs on reconnect), and submits.
 5. The district submits. The admin reviews, approves everything, searches the structure and downloads Excel and PDF.
@@ -13,7 +13,7 @@ These click through the whole system the way people will use it. CI runs them on
 
 `race.mjs` checks that tapping "Review" straight after adding a school still saves it.
 
-`a11y.mjs` runs axe (WCAG 2.1 A/AA) on the home, registration, privacy, the district and local forms and the admin pages, in light and dark mode. Serious or critical problems fail the run.
+`a11y.mjs` runs axe (WCAG 2.1 A/AA) on the home, registration, privacy, About, the district and local forms and the admin pages, in light and dark mode. Serious or critical problems fail the run.
 
 `demo.mjs` runs against the demo API: the demo bar shows, every role signs in with one tap and sees their guide, the page passes axe, and reset issues new codes.
 

@@ -11,6 +11,7 @@ import LocalWorkspace from './pages/local/LocalWorkspace';
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 // Rarely opened pages stay out of the form bundle too.
 const Privacy = lazy(() => import('./pages/Privacy'));
+const About = lazy(() => import('./pages/About'));
 const Demo = lazy(() => import('./pages/Demo'));
 
 const later = (el: React.ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/district/locals/:id" element={<DistrictLocalEditor />} />
       <Route path="/local" element={<LocalWorkspace />} />
       <Route path="/privacy" element={later(<Privacy />)} />
+      <Route path="/about" element={later(<About />)} />
       <Route path="/demo" element={later(<Demo />)} />
       <Route path="/admin/*" element={later(<AdminApp />)} />
       <Route path="*" element={<Navigate to="/" replace />} />

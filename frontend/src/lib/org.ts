@@ -17,5 +17,18 @@ export const DPC = {
   url: 'https://www.dataprotection.org.gh',
 };
 
+/**
+ * GNAT Ashanti pays nothing for this system while the Classpiler partnership continues: Rootabytes builds,
+ * hosts and supports it as its in-kind contribution. Shown on the About page and in the Regional Secretary's
+ * explainer PDF (backend/scripts/explainer.ts). No amount or end date is published; keep it in line with
+ * the letters to the Regional Secretariat.
+ */
+export const IN_KIND = {
+  partner: 'GNAT Ashanti',
+  app: 'Classpiler',
+  appUrl: 'https://classpiler.com',
+  appWhat: 'AI lesson planning for Ghanaian teachers',
+};
+
 /** When this privacy notice last changed. Update it with every change to the notice. */
 export const PRIVACY_UPDATED = '29 September 2026';
