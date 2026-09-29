@@ -63,7 +63,7 @@ for (const scheme of ['light', 'dark']) {
   const login = await desk.newPage();
   await login.goto(`${WEB}/admin`);
   await login.getByLabel('Email').fill(EMAIL);
-  await login.getByLabel('Password').fill(PASSWORD);
+  await login.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await login.getByRole('button', { name: 'Sign in' }).click();
   await login.getByText('Region overview').waitFor();
   await login.close();

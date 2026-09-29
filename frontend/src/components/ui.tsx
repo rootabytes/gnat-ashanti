@@ -11,6 +11,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Copy,
+  Eye,
+  EyeOff,
   Info,
   Loader2,
   MessageCircle,
@@ -112,6 +114,25 @@ export function TextField({
   ...rest
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: ReactNode; error?: string | null }) {
   const id = useId();
+  const [shown, setShown] = useState(false);
+  if (rest.type === 'password') {
+    return (
+      <Field label={label} hint={hint} error={error} htmlFor={id}>
+        <div className="relative">
+          <Input id={id} aria-invalid={!!error} {...rest} type={shown ? 'text' : 'password'} className={cx('pr-12', rest.className)} />
+          <button
+            type="button"
+            onClick={() => setShown((s) => !s)}
+            aria-label={shown ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+            aria-pressed={shown}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-ink-3 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]/30"
+          >
+            {shown ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+          </button>
+        </div>
+      </Field>
+    );
+  }
   return (
     <Field label={label} hint={hint} error={error} htmlFor={id}>
       <Input id={id} aria-invalid={!!error} {...rest} />

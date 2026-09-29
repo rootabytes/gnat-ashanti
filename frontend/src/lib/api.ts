@@ -78,7 +78,9 @@ async function request<T>(method: string, path: string, body: unknown, who: Who)
       body: body === undefined ? undefined : file ? body : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(0, 'No internet connection. Your work is kept on this phone. Try again when you are back online.');
+    if (typeof navigator !== 'undefined' && navigator.onLine === false)
+      throw new ApiError(0, 'No internet connection. Your work is kept on this phone. Try again when you are back online.');
+    throw new ApiError(0, "Can't reach the GNAT Mapping server. Your work is kept on this phone. Please try again in a minute.");
   }
   const data = res.headers.get('content-type')?.includes('json') ? await res.json().catch(() => ({})) : {};
   if (!res.ok) {
