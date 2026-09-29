@@ -3,6 +3,7 @@
 // Fails on serious or critical problems; lists moderate ones as warnings.
 import AxeBuilder from '@axe-core/playwright';
 import { chromium, devices } from 'playwright';
+import { closeGuide } from './guide.mjs';
 
 const WEB = process.env.WEB_URL ?? 'http://localhost:4173';
 const API = process.env.API_URL ?? 'http://localhost:4000/api';
@@ -66,6 +67,7 @@ for (const scheme of ['light', 'dark']) {
   await login.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await login.getByRole('button', { name: 'Sign in' }).click();
   await login.getByText('Region overview').waitFor();
+  await closeGuide(login, 'Super Admin');
   await login.close();
   for (const [name, path, text] of [
     ['admin overview', '/admin', 'Region overview'],

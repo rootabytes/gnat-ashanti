@@ -9,7 +9,7 @@ export default function LocalWorkspace() {
   const s = session.chair();
   if (!s || s.role !== 'local') return <Navigate to="/" replace />;
   return (
-    <ChairShell subtitle={`${s.name} Local`}>
+    <ChairShell subtitle={`${s.name} Local`} guide={{ role: 'local', key: s.name }}>
       <LocalFlow base="/local" detailsPath={null} />
     </ChairShell>
   );

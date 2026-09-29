@@ -7,26 +7,42 @@ import { session } from '../lib/api';
 import type { Status } from '../lib/api';
 import type { PoliticalDistrict } from '../lib/types';
 import { BrandBar, Footer } from './Brand';
+import { GuideButton, GuideDialog, useGuide } from './Guide';
+import type { GuideRole } from '../lib/guides';
 import { Alert, Button, cx, Input, StatusBadge } from './ui';
 
-export function ChairShell({ subtitle, children }: { subtitle: string; children: ReactNode }) {
+/** `guide`: the role guide to show on this person's first sign-in and from the Guide button. */
+export function ChairShell({
+  subtitle,
+  guide,
+  children,
+}: {
+  subtitle: string;
+  guide?: { role: GuideRole; key: string };
+  children: ReactNode;
+}) {
   const nav = useNavigate();
+  const g = useGuide(guide ? `${guide.role}.${guide.key}` : null);
   return (
     <div className="min-h-dvh pb-28">
+      {guide && <GuideDialog role={guide.role} open={g.open} onClose={g.close} />}
       <BrandBar
         subtitle={subtitle}
         right={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              session.setChair(null);
-              nav('/');
-            }}
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
-            Sign out
-          </Button>
+          <>
+            {guide && <GuideButton onClick={g.show} />}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                session.setChair(null);
+                nav('/');
+              }}
+            >
+              <LogOut className="h-4 w-4" aria-hidden />
+              Sign out
+            </Button>
+          </>
         }
       />
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
@@ -45,7 +61,7 @@ export function Stepper({
   onSelect: (i: number) => void;
 }) {
   return (
-    <nav aria-label="Form steps" className="no-print -mx-4 overflow-x-auto px-4">
+    <nav aria-label="Form steps" className="no-print relative -mx-4 overflow-x-auto px-4">
       <ol className="flex min-w-max gap-1.5">
         {steps.map((s, i) => {
           const active = i === current;

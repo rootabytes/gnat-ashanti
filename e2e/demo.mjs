@@ -2,6 +2,7 @@
 // Needs the API started with DEMO_MODE=true on its own database (see README.md).
 import AxeBuilder from '@axe-core/playwright';
 import { chromium, devices } from 'playwright';
+import { closeGuide } from './guide.mjs';
 
 const WEB = process.env.WEB_URL ?? 'http://localhost:4173';
 const OUT = (await import('node:url')).fileURLToPath(new URL('./screenshots', import.meta.url));
@@ -24,16 +25,19 @@ const card = (title) => p.locator('section', { has: p.getByRole('heading', { nam
 
 await card('Regional Secretary').getByRole('button', { name: 'Sign in' }).first().click();
 await p.getByText('Ashanti Region overview').waitFor();
+await closeGuide(p, 'Regional Secretary');
 console.log('✓ Regional Secretary');
 
 await p.goto(`${WEB}/demo`);
 await card('District Chairmen').locator('li', { hasText: 'Kumasi Metro' }).getByRole('button', { name: 'Sign in' }).click();
 await p.getByRole('heading', { name: 'Kumasi Metro District' }).waitFor();
+await closeGuide(p, 'District Chairman');
 console.log('✓ District Chairman');
 
 await p.goto(`${WEB}/demo`);
 await card('Local Chairmen').locator('li', { hasText: 'Bantama' }).getByRole('button', { name: 'Sign in' }).click();
 await p.getByRole('heading', { name: 'Bantama Local' }).waitFor();
+await closeGuide(p, 'Local Chairman');
 await p.getByLabel('GPS address of Bantama M/A JHS').waitFor();
 console.log('✓ Local Chairman');
 

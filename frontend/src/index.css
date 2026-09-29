@@ -96,3 +96,10 @@ textarea {
     border: 0 !important;
   }
 }
+
+/* Older phones (Safari before 15.4, Chrome before 108) don't know dvh: use vh there. */
+@supports not (min-height: 100dvh) {
+  .min-h-dvh {
+    min-height: 100vh;
+  }
+}

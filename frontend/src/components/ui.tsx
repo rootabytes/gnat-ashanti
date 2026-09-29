@@ -252,6 +252,7 @@ export function Modal({
   footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -261,6 +262,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className="m-auto w-[min(34rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-black/50"
@@ -268,7 +270,9 @@ export function Modal({
       {open && (
         <div>
           <header className="flex items-center justify-between border-b border-line px-5 py-3">
-            <h2 className="text-base font-bold">{title}</h2>
+            <h2 id={titleId} className="text-base font-bold">
+              {title}
+            </h2>
             <button onClick={onClose} className="rounded p-1 text-ink-3 hover:bg-surface-2" aria-label="Close">
               <X className="h-5 w-5" aria-hidden />
             </button>
@@ -381,6 +385,33 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 }
 
+/** Clipboard API where available; the older execCommand route for phones and in-app browsers without it. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export function CopyButton({ text, label = 'Copy', size = 'sm' }: { text: string; label?: string; size?: 'sm' | 'md' }) {
   const toast = useToast();
   return (
@@ -388,12 +419,8 @@ export function CopyButton({ text, label = 'Copy', size = 'sm' }: { text: string
       variant="secondary"
       size={size}
       onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          toast('Copied');
-        } catch {
-          toast('Could not copy. Select the text and copy it manually.', 'error');
-        }
+        if (await copyText(text)) toast('Copied');
+        else toast('Could not copy. Select the text and copy it manually.', 'error');
       }}
     >
       <Copy className="h-4 w-4" aria-hidden />

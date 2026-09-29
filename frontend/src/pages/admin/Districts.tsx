@@ -122,7 +122,7 @@ function DistrictRow({ d }: { d: Row }) {
     <li className="rounded-xl border border-line bg-surface p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link to={`/admin/districts/${d.id}`} className="text-lg font-bold text-brand hover:underline">
+          <Link to={`/admin/districts/${d.id}`} className="inline-flex min-h-8 items-center text-lg font-bold text-brand hover:underline">
             {d.name}
           </Link>
           {!d.verified && <span className="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-xs text-ink-3">self-registered</span>}

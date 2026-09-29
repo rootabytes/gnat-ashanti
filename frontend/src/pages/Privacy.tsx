@@ -128,7 +128,7 @@ export default function Privacy() {
             or call {ROOTABYTES.phone}. You can also ask your GNAT Regional Secretary.
           </p>
           <p className="mt-3">
-            <Link to="/" className="font-semibold text-brand">
+            <Link to="/" className="inline-flex min-h-10 items-center font-semibold text-brand">
               Back to GNAT Mapping
             </Link>
           </p>

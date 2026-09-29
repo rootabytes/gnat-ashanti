@@ -70,7 +70,7 @@ Log in to the Cloudflare account that holds **rootabytes.com**.
 1. **Railway → api → Settings → Networking → Custom Domain** → `gnatashanti-api.rootabytes.com`. Railway shows a **CNAME target** (and sometimes a TXT record for verification).
 2. **Cloudflare → rootabytes.com → DNS → Add record**:
    - Type `CNAME`, Name `gnatashanti-api`, Target: the value Railway showed.
-   - **Proxy status: DNS only (grey cloud).** Railway issues its own certificate and needs the record unproxied.
+   - **Proxy status:** either works. DNS only (grey cloud) is simplest. Proxied (orange cloud) also works, with SSL/TLS mode **Full**; the API still sees each visitor's real address for its rate limits.
    - If Railway showed a TXT record, add it too.
 3. Wait for Railway to show the domain as active (usually a few minutes), then open `https://gnatashanti-api.rootabytes.com/api/health`.
 
@@ -120,7 +120,7 @@ Push to the `main` branch. Railway and Cloudflare redeploy both the real site an
 | Symptom                                                               | Fix                                                                                                                                                |
 | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Website says "No internet connection" on every action                 | `VITE_API_URL` is wrong, or the site's address is missing from `ALLOWED_ORIGINS`. Fix it, then redeploy the Cloudflare site (Deployments → Retry). |
-| `gnatashanti-api.rootabytes.com` shows a certificate or 5xx error     | The Cloudflare DNS record must be **DNS only** (grey cloud), and the domain must show as active in Railway.                                        |
+| `gnatashanti-api.rootabytes.com` shows a certificate or 5xx error     | The domain must show as active in Railway. If the Cloudflare record is proxied (orange), SSL/TLS mode must be **Full**; or switch it to DNS only.  |
 | `/api/health` gives `{"ok":false}`                                    | The API can't reach the database. Check that `DATABASE_URL` references the right Postgres service.                                                 |
 | Deploy log: "DEMO_MODE=true but this database already holds data"     | The demo service points at the real database. Give it `Postgres-demo`.                                                                             |
 | Deploy log: "This database belongs to the demo site"                  | The real service points at the demo database. Point it at the real `Postgres`.                                                                     |

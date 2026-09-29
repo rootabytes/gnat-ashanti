@@ -12,6 +12,7 @@ import { districtRouter } from './routes/district';
 import { localRouter } from './routes/local';
 import { publicRouter } from './routes/public';
 import { openApiSpec } from './openapi';
+import { trustProxy } from './proxy';
 import { migrate } from './schema';
 import { seed } from './seed';
 
@@ -26,7 +27,7 @@ function originAllowed(origin: string): boolean {
 
 export function createApp() {
   const app = express();
-  app.set('trust proxy', 1); // Railway terminates TLS in front of us
+  app.set('trust proxy', trustProxy); // Railway's edge, plus Cloudflare when the domain is proxied
   app.disable('x-powered-by');
   if (process.env.NODE_ENV !== 'test') app.use(requestLogger);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));

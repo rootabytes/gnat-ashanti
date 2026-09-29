@@ -108,7 +108,7 @@ jobs:
           VITE_API_URL: http://localhost:4000
       - name: Install Playwright
         working-directory: e2e
-        run: npm ci && npx playwright install --with-deps chromium
+        run: npm ci && npx playwright install --with-deps chromium webkit
       - name: Start API and site
         run: |
           (cd backend && nohup node dist/server.js > ../api.log 2>&1 &)
@@ -133,6 +133,9 @@ jobs:
       - name: Demo site
         working-directory: e2e
         run: node demo.mjs
+      - name: Every screen on small and large phones (Chrome and iPhone Safari engines)
+        working-directory: e2e
+        run: curl -sf -X POST localhost:4000/api/demo/reset > /dev/null && node mobile.mjs
       - if: always()
         uses: actions/upload-artifact@v4
         with:

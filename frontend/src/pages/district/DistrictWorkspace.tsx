@@ -29,7 +29,7 @@ export default function DistrictWorkspace() {
   const s = session.chair();
   if (!s || s.role !== 'district') return <Navigate to="/" replace />;
   return (
-    <ChairShell subtitle={`${s.name} District`}>
+    <ChairShell subtitle={`${s.name} District`} guide={{ role: 'district', key: s.name }}>
       <DistrictFlow />
     </ChairShell>
   );

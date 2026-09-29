@@ -1,4 +1,5 @@
 import { chromium, devices } from 'playwright';
+import { closeGuide } from './guide.mjs';
 const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const ctx = await b.newContext({ ...devices['Pixel 7'] });
 const api = (p, o = {}) =>
@@ -16,6 +17,7 @@ const code = codes.find((c) => c.name === 'Ayalolo').code;
 const p = await ctx.newPage();
 await p.goto(`http://localhost:4173/?code=${code}`);
 await p.getByRole('heading', { name: 'Ayalolo Local' }).waitFor();
+await closeGuide(p, 'Local Chairman');
 await p.getByRole('heading', { name: 'Basic units / workplaces' }).waitFor();
 await p.getByLabel('Workplace name').fill('Race Condition Basic');
 await p.getByRole('button', { name: 'Add', exact: true }).click();

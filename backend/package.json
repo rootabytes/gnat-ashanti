@@ -12,7 +12,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test --test-concurrency=1 test/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 test/*.test.ts",
+    "guides": "tsx scripts/guides.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

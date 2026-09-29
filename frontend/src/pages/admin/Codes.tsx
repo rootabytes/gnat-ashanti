@@ -84,7 +84,12 @@ export default function Codes() {
         </Select>
       </div>
       <h2 className={cx('mb-2 hidden text-lg font-bold', printing === 'list' && 'print:block')}>GNAT {region.name}: Access codes</h2>
-      <div className={cx('overflow-x-auto rounded-xl border border-line bg-surface print-plain', printing === 'slips' && 'print:hidden')}>
+      <div
+        className={cx(
+          'relative overflow-x-auto rounded-xl border border-line bg-surface print-plain',
+          printing === 'slips' && 'print:hidden',
+        )}
+      >
         <table className="w-full min-w-[40rem] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-ink-3">

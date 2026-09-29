@@ -15,7 +15,9 @@ These click through the whole system the way people will use it. CI runs them on
 
 `a11y.mjs` runs axe (WCAG 2.1 A/AA) on the home, registration, privacy, both chairman forms and the admin pages, in light and dark mode. Serious or critical problems fail the run.
 
-`demo.mjs` runs against the demo API: the demo bar shows, every role signs in with one tap, the page passes axe, and reset issues new codes.
+`demo.mjs` runs against the demo API: the demo bar shows, every role signs in with one tap and sees their guide, the page passes axe, and reset issues new codes.
+
+`mobile.mjs` also runs against the demo API. It opens every screen, and each role's first-sign-in guide, on a 320 px Android, a normal Android (Chrome), an iPhone SE and an iPhone Pro Max (WebKit), and fails on sideways scrolling, anything past the screen edge, tap targets under 24 px, or fields under 16 px that make iPhones zoom. `MOBILE_SHOTS=1` saves a screenshot of each. Needs `npx playwright install webkit` once.
 
 Every script exits non-zero on failure. Screenshots land in `e2e/screenshots/`.
 

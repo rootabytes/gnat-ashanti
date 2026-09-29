@@ -13,6 +13,7 @@ import Districts from './Districts';
 import Downloads from './Downloads';
 import Overview from './Overview';
 import { AccountSetup } from './Account';
+import { GuideButton, GuideDialog, useGuide } from '../../components/Guide';
 import Settings from './Settings';
 import Structure from './Structure';
 
@@ -97,6 +98,8 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
   // Stable per region so pages can list it as an effect dependency without refetch loops.
   const q = useCallback((p: string) => `${p}${p.includes('?') ? '&' : '?'}regionId=${rid}`, [rid]);
   const ctx = useMemo<Ctx | null>(() => (me && region ? { me, region, reloadMe, q } : null), [me, region, q]);
+  // After "Set up your account", so a new admin meets the guide once they can use the dashboard.
+  const guide = useGuide(me && !me.must_change_password ? `admin.${me.id}` : null);
 
   if (error)
     return (
@@ -137,10 +140,12 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
   return (
     <AdminCtx.Provider value={ctx}>
       <div className="min-h-dvh">
+        <GuideDialog role={me.region_id === null ? 'super' : 'admin'} open={guide.open} onClose={guide.close} />
         <BrandBar
           subtitle={`${region.name} Region · Admin`}
           right={
             <>
+              <GuideButton onClick={guide.show} />
               {me.regions.filter((r) => r.active || r.id === region.id).length > 1 && (
                 <Select
                   aria-label="Region"
@@ -175,7 +180,7 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
         <div className="mx-auto max-w-6xl px-4 lg:flex lg:gap-6">
           <nav
             aria-label="Admin"
-            className="no-print -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6"
+            className="no-print relative -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6"
           >
             <ul className="flex gap-1 py-2 lg:sticky lg:top-20 lg:flex-col lg:py-0">
               {NAV.map((n) => (

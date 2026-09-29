@@ -46,7 +46,10 @@ export default function Home() {
     <div className="min-h-dvh">
       <BrandBar
         right={
-          <Link to="/admin" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand">
+          <Link
+            to="/admin"
+            className="-mx-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-ink-2 hover:text-brand"
+          >
             <LayoutDashboard className="h-4 w-4" aria-hidden />
             Admin
           </Link>

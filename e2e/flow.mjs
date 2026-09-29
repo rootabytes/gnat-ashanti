@@ -1,4 +1,5 @@
 import { chromium, devices } from 'playwright';
+import { closeGuide } from './guide.mjs';
 const WEB = process.env.WEB_URL ?? 'http://localhost:4173';
 const OUT = process.env.OUT ?? (await import('node:url')).fileURLToPath(new URL('./screenshots', import.meta.url));
 await import('node:fs').then((fs) => fs.mkdirSync(OUT, { recursive: true }));
@@ -33,6 +34,24 @@ await admin.getByLabel('New password', { exact: true }).fill(PASSWORD);
 await admin.getByLabel('New password again', { exact: true }).fill(PASSWORD);
 await admin.getByRole('button', { name: 'Save and continue' }).click();
 await admin.getByText('Ashanti Region overview').waitFor();
+// First time in: the super admin guide walks through every step and ends with its PDF.
+{
+  const guide = admin.getByRole('dialog', { name: 'Super Admin guide' });
+  await guide.getByRole('button', { name: 'Show me' }).click();
+  while (await guide.getByRole('button', { name: 'Next' }).isVisible()) await guide.getByRole('button', { name: 'Next' }).click();
+  await shot(admin, '00b-admin-guide-end');
+  for (const name of ['Printable guide (PDF)', 'Regional Secretary guide (PDF)']) {
+    const href = await guide.getByRole('link', { name }).getAttribute('href');
+    const res = await fetch(`${WEB}${href}`);
+    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('pdf')) errors.push(`guide: ${href} did not return a PDF`);
+  }
+  await guide.getByRole('button', { name: 'Get started' }).click();
+  await guide.waitFor({ state: 'hidden' });
+  await admin.reload();
+  await admin.getByText('Ashanti Region overview').waitFor();
+  if (await guide.isVisible()) errors.push('guide: opened again after it was closed');
+  console.log('✓ super admin guide on first sign-in, with working PDFs, only once');
+}
 
 // The super admin adds the Assistant Regional Secretary by WhatsApp number...
 await admin.getByRole('link', { name: 'Settings' }).click();
@@ -62,6 +81,7 @@ await asst.getByLabel('New password', { exact: true }).fill('Assistant-2026!');
 await asst.getByLabel('New password again', { exact: true }).fill('Assistant-2026!');
 await asst.getByRole('button', { name: 'Save and continue' }).click();
 await asst.getByText('Ashanti Region overview').waitFor();
+await closeGuide(asst, 'Regional Secretary');
 await asst.context().close();
 console.log('✓ assistant admin added, signed in by phone, set his own email and password');
 await admin.getByRole('link', { name: 'Overview' }).click();
@@ -95,6 +115,7 @@ await d.getByText('Your district is registered').waitFor();
 const dcode = (await d.locator('.code-font').first().textContent()).trim();
 await shot(d, '02-registered');
 await d.getByRole('button', { name: /Start filling/ }).click();
+await closeGuide(d, 'District Chairman');
 // step 1 prefilled → political districts
 await d.getByText('01 · Political administrative district(s)').waitFor();
 await d.getByLabel('Search political districts').fill('Kumasi');
@@ -154,6 +175,7 @@ const l = await phone2.newPage();
 watch(l, 'local');
 await l.goto(`${WEB}/?code=${encodeURIComponent(adumCode)}`);
 await l.getByRole('heading', { name: 'Adum Local' }).waitFor();
+await closeGuide(l, 'Local Chairman');
 await l.getByRole('heading', { name: 'Basic units / workplaces' }).waitFor(); // chairman already set → lands on step 2
 await l.getByRole('button', { name: /Paste many at once/ }).click();
 await l
@@ -256,6 +278,7 @@ await dm.getByLabel('Email').fill('secretary@gnatashanti.org');
 await dm.getByLabel('Password', { exact: true }).fill(PASSWORD);
 await dm.getByRole('button', { name: 'Sign in' }).click();
 await dm.getByText('Ashanti Region overview').waitFor();
+await closeGuide(dm, 'Super Admin');
 await dm.waitForTimeout(500);
 await shot(dm, '13-admin-mobile-dark');
 const bg = await dm.evaluate(() => getComputedStyle(document.body).backgroundColor);

@@ -79,7 +79,7 @@ export default function DistrictReview() {
 
   return (
     <div className="space-y-5">
-      <Link to="/admin/districts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand">
+      <Link to="/admin/districts" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-brand">
         <ArrowLeft className="h-4 w-4" aria-hidden />
         All districts
       </Link>

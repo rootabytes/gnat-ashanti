@@ -100,7 +100,10 @@ export default function Structure() {
           {filtered.map((d) => (
             <li key={d.id} className="relative">
               {/* Outside the summary: a link inside a toggle is a nested control for screen readers. */}
-              <Link to={`/admin/districts/${d.id}`} className="absolute right-4 top-3 z-10 text-sm font-semibold text-brand">
+              <Link
+                to={`/admin/districts/${d.id}`}
+                className="absolute right-2 top-1.5 z-10 inline-flex min-h-8 items-center rounded-lg px-2 text-sm font-semibold text-brand"
+              >
                 Open
               </Link>
               <details open={expandAll} className="group">

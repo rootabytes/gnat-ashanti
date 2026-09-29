@@ -113,7 +113,11 @@ export default function Overview() {
             <Alert tone="info" title={`${needsReview.length} district${needsReview.length === 1 ? '' : 's'} waiting for your review`}>
               <div className="mt-1 flex flex-wrap gap-2">
                 {needsReview.map((d) => (
-                  <Link key={d.id} to={`/admin/districts/${d.id}`} className="font-semibold text-brand underline">
+                  <Link
+                    key={d.id}
+                    to={`/admin/districts/${d.id}`}
+                    className="inline-flex min-h-8 items-center font-semibold text-brand underline"
+                  >
                     {d.name}
                   </Link>
                 ))}
@@ -164,7 +168,7 @@ export default function Overview() {
         <Card
           title="Recent activity"
           action={
-            <Link to="/admin/activity" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+            <Link to="/admin/activity" className="-my-1 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-brand">
               All activity
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
@@ -177,13 +181,13 @@ export default function Overview() {
       <Card
         title="District tracker"
         action={
-          <Link to="/admin/districts" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+          <Link to="/admin/districts" className="-my-1 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-brand">
             Open tracker
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         }
       >
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[36rem] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-ink-3">
@@ -198,7 +202,10 @@ export default function Overview() {
               {data.perDistrict.map((d) => (
                 <tr key={d.id} className="border-b border-line/60">
                   <td className="py-2 pr-3">
-                    <Link to={`/admin/districts/${d.id}`} className="font-semibold text-brand hover:underline">
+                    <Link
+                      to={`/admin/districts/${d.id}`}
+                      className="inline-flex min-h-8 items-center font-semibold text-brand hover:underline"
+                    >
                       {d.name}
                     </Link>
                   </td>

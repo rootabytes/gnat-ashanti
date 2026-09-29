@@ -138,7 +138,7 @@ function PoliticalCard() {
                   {p.name} <span className="text-xs text-ink-3">{p.kind}</span>
                 </span>
                 <button
-                  className="rounded px-1 text-xs text-ink-3 hover:text-danger focus-visible:text-danger"
+                  className="min-h-8 rounded px-2 text-xs text-ink-3 hover:text-danger focus-visible:text-danger"
                   aria-label={`Remove ${p.name}`}
                   onClick={async () => {
                     const { ok } = await confirm({ title: `Remove ${p.name}?`, confirm: 'Remove', danger: true });

@@ -24,6 +24,8 @@ Statuses: **In progress → Submitted → Approved**, or **Returned** with a not
 Design choices:
 
 - **Codes, not accounts.** Chairmen type or tap a code like `D-7K3P-Q9XM`. Shared links carry the code (`/?code=…`) for one-tap sign-in. Codes are stored as an HMAC (for lookup) plus AES-GCM ciphertext (so they can be re-shared). Resetting a code signs out every device that used the old one.
+- **Every phone, old or new.** Built for Android 7 and later (Chrome 99+) and iPhone 6s and later (Safari 15.4+). `e2e/mobile.mjs` checks every screen on a 320 px Android, a normal Android, an iPhone SE and an iPhone Pro Max, in Chrome and Safari's engine: no sideways scrolling, tap targets at least 24 px, and no field small enough to make an iPhone zoom in.
+- **Role guides.** Each person's first sign-in opens a short step-by-step guide for their role (Local Chairman, District Chairman, Regional Secretary, super admin), and **Guide** at the top reopens it. The same text is in one-page PDFs at `/guides/…pdf` for printing or sharing on WhatsApp. Edit `frontend/src/lib/guides.ts`, then run `npm --prefix backend run guides` to remake the PDFs.
 - **Mobile first, bad networks expected.** Workplace lists save to the phone first and sync automatically, including after reconnecting. The form bundle is about 100 KB gzipped, with a CI budget of 110 KB. The admin dashboard, privacy notice and demo page load separately.
 - **Excel import.** Chairmen who keep their schools in a spreadsheet download the template (category dropdown, optional GPS column) and upload it. The server only reads the file; the rows are shown for checking and saved through the normal form.
 - **Demo site.** With `DEMO_MODE=true` the API loads fictional districts in every status and `/demo` offers one-tap sign-in for every role. It runs on its own database: the API refuses to mix demo and real data.
@@ -122,13 +124,13 @@ Browser tests, the accessibility audit and the demo test: see `e2e/README.md`.
   - ESLint and Prettier;
   - typecheck and the API tests against Postgres 16, including demo mode;
   - the frontend build and its performance budget;
-  - Playwright browser tests of the whole flow, an axe accessibility audit (WCAG 2.1 AA, including devices in dark mode), and the demo site;
+  - Playwright browser tests of the whole flow, an axe accessibility audit (WCAG 2.1 AA, including devices in dark mode), the demo site, and every screen on four phones in Chrome and WebKit (iPhone Safari);
   - `npm audit`.
 - **API description:** OpenAPI 3.1 at `/api/openapi.json`, generated from the zod schemas. A test fails if a route is missing from it.
 - **Dependabot:** weekly grouped dependency updates.
 - **Security:**
   - Access codes stored hashed and encrypted.
-  - Rate-limited sign-in.
+  - Rate-limited sign-in, counted per visitor even through Cloudflare's proxy (the API trusts Railway's edge and Cloudflare's published address ranges, nothing else).
   - Admin passwords hashed with bcrypt. Temporary passwords (from Railway or another admin) must be replaced at first sign-in.
   - Validation on every input (zod).
   - Excel formula injection blocked in CSV exports. Excel and PDF exports are marked "Confidential: GNAT internal".
