@@ -1,5 +1,10 @@
-# Cloudflare Pages project (used by `npx wrangler pages deploy dist` if you deploy from a terminal).
-# Deploying from the Cloudflare dashboard via Git does not need this file.
+# Cloudflare Worker that serves the built site (static assets only, no server code).
+# Used by the dashboard's Git builds ("npx wrangler deploy") and by `npx wrangler deploy` from a terminal.
+# The demo site deploys the same build under another name: `npx wrangler deploy --name gnat-ashanti-demo`.
 name = "gnat-ashanti"
-pages_build_output_dir = "dist"
 compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./dist"
+# Unknown paths such as /admin/districts get index.html, so the app's own router handles them.
+not_found_handling = "single-page-application"

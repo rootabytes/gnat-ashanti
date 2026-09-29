@@ -4,9 +4,9 @@ Everything below is done in a web browser. No terminal is needed.
 
 | Part                | Where              | Address                                       | Cost                    |
 | ------------------- | ------------------ | --------------------------------------------- | ----------------------- |
-| Website             | Cloudflare Pages   | `https://gnatashanti.rootabytes.com`          | free                    |
+| Website             | Cloudflare Worker  | `https://gnatashanti.rootabytes.com`          | free                    |
 | API + database      | Railway (Pro plan) | `https://gnatashanti-api.rootabytes.com`      | a few dollars a month   |
-| Demo website        | Cloudflare Pages   | `https://gnatashanti-demo.rootabytes.com`     | free                    |
+| Demo website        | Cloudflare Worker  | `https://gnatashanti-demo.rootabytes.com`     | free                    |
 | Demo API + database | Railway            | `https://gnatashanti-demo-api.rootabytes.com` | a dollar or two a month |
 
 The addresses are free subdomains of `rootabytes.com`, whose DNS is already on Cloudflare. The Rootabytes website (Firebase) is not affected. Each subdomain has a single level (`gnatashanti-api`, not `api.gnatashanti`), so Cloudflare's free certificate covers it.
@@ -31,7 +31,7 @@ Allow about 40 minutes for everything. Do the steps in order: the website needs 
    ADMIN_EMAIL=akasiya@rootabytes.com
    ADMIN_PASSWORD=a-temporary-password
    ADMIN_NAME=Super Admin
-   ALLOWED_ORIGINS=https://gnatashanti.rootabytes.com,https://gnat-ashanti.pages.dev,https://*.gnat-ashanti.pages.dev
+   ALLOWED_ORIGINS=https://gnatashanti.rootabytes.com
    ```
 
    - `JWT_SECRET` must **never change** after launch. It also encrypts the stored access codes. If `${{secret(64)}}` isn't accepted, paste any random 64-character string.
@@ -43,18 +43,19 @@ Allow about 40 minutes for everything. Do the steps in order: the website needs 
    The tables, the 43 Ashanti districts and the admin account are created on first start.
 7. **Postgres service → Backups**: turn on daily backups.
 
-## 2. Cloudflare Pages: the website
+## 2. Cloudflare Worker: the website
 
-1. **dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git** → choose **`gnat-ashanti`**. Name the project **`gnat-ashanti`**.
-2. Build settings:
-   - **Framework preset**: `Vite` (or None)
+The website is a set of static files served by a Cloudflare Worker (free). [frontend/wrangler.toml](frontend/wrangler.toml) holds its settings.
+
+1. **dash.cloudflare.com → Workers & Pages → Create → Import a repository** → choose **`gnat-ashanti`**. Name the Worker **`gnat-ashanti`** (it must match `name` in `frontend/wrangler.toml`).
+2. Build settings (later under **Settings → Build**):
    - **Root directory**: `frontend`
    - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-3. **Environment variables** (Production and Preview):
+   - **Deploy command**: `npx wrangler deploy`
+3. **Build variables** (under **Settings → Build → Variables and secrets**, not the Worker's runtime variables):
    - `VITE_API_URL` = `https://gnatashanti-api.rootabytes.com` (set up in step 3; until then use the Railway address from 1.5, no trailing slash)
    - `NODE_VERSION` = `22`
-4. **Save and Deploy**. The site appears at `https://gnat-ashanti.pages.dev`.
+4. **Deploy**. The API address is built into the site, so after changing `VITE_API_URL` run a new build (**Deployments → ⋯ → Retry build**, or push a commit).
 
 ## 3. The rootabytes.com addresses (free)
 
@@ -62,7 +63,7 @@ Log in to the Cloudflare account that holds **rootabytes.com**.
 
 **Website:**
 
-1. **Workers & Pages → gnat-ashanti → Custom domains → Set up a custom domain** → `gnatashanti.rootabytes.com` → **Activate**. When rootabytes.com is in the same Cloudflare account as the Pages project, Cloudflare adds the DNS record and the certificate itself, ready within a few minutes. If they are in different accounts, add the record by hand in the rootabytes.com account: `CNAME gnatashanti → gnat-ashanti.pages.dev`.
+1. **Workers & Pages → gnat-ashanti → Settings → Domains & Routes → Add → Custom domain** → `gnatashanti.rootabytes.com`. rootabytes.com is in the same Cloudflare account, so Cloudflare adds the DNS record and the certificate itself, ready within a few minutes.
 
 **API:**
 
@@ -75,7 +76,7 @@ Log in to the Cloudflare account that holds **rootabytes.com**.
 
 **Connect them:**
 
-1. Cloudflare Pages → gnat-ashanti → **Settings → Environment variables**: set `VITE_API_URL=https://gnatashanti-api.rootabytes.com`, then **Deployments → Retry deployment** (the address is built into the site).
+1. Cloudflare → gnat-ashanti → **Settings → Build → Variables and secrets**: set `VITE_API_URL=https://gnatashanti-api.rootabytes.com`, then run a new build (the address is built into the site).
 2. Railway: `ALLOWED_ORIGINS` from step 1.4 already includes `https://gnatashanti.rootabytes.com`.
 
 ## 4. Demo site (for testers)
@@ -91,11 +92,11 @@ The demo lets anyone try every role with one tap: Regional Secretary, District C
    DEMO_MODE=true
    DATABASE_URL=${{Postgres-demo.DATABASE_URL}}
    JWT_SECRET=${{secret(64)}}
-   ALLOWED_ORIGINS=https://gnatashanti-demo.rootabytes.com,https://gnat-ashanti-demo.pages.dev
+   ALLOWED_ORIGINS=https://gnatashanti-demo.rootabytes.com
    ```
 
 4. Custom domain `gnatashanti-demo-api.rootabytes.com`, exactly as in step 3 (grey-cloud CNAME in Cloudflare).
-5. **Cloudflare Pages**: create a second project from the same repo, named **`gnat-ashanti-demo`**, with the same build settings and `VITE_API_URL=https://gnatashanti-demo-api.rootabytes.com`. Add the custom domain `gnatashanti-demo.rootabytes.com`.
+5. **Cloudflare**: import the same repo again as a second Worker named **`gnat-ashanti-demo`**, with the same build settings except **Deploy command** `npx wrangler deploy --name gnat-ashanti-demo`, and build variable `VITE_API_URL=https://gnatashanti-demo-api.rootabytes.com`. Add the custom domain `gnatashanti-demo.rootabytes.com`.
 6. Open `https://gnatashanti-demo.rootabytes.com/demo`. Every page shows a yellow "Demo site" bar.
 
 The demo data is reset on every deploy and whenever a tester taps **Reset demo data** on the demo page. Demo admins cannot change their password, so the published one keeps working.
