@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Send } from 'lucide-react';
-import { StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
+import { SecretaryDetails, StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
 import { Alert, Button, Card, Field, Loading, Textarea, TextField, useConfirm, useToast } from '../../components/ui';
 import { GpsTag, UnitsEditor } from '../../components/UnitsEditor';
 import { api } from '../../lib/api';
@@ -124,6 +124,21 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
         </p>
       </TitleRow>
       <div className="space-y-4">
+        <SecretaryDetails
+          kind="local"
+          who={detailsPath === null ? 'Your details' : 'Local Secretary'}
+          name={data.name}
+          chairName={data.chairName}
+          chairPhone={data.chairPhone}
+          status={data.status}
+          onSave={async (x) =>
+            hydrate(
+              detailsPath === null
+                ? await api.chair.patch<LocalDetail>('/local/me', { ...x, remarks: data.remarks })
+                : (await api.chair.patch(detailsPath, x), await api.chair.get<LocalDetail>(base)),
+            )
+          }
+        />
         <StatusBanner status={data.status} adminNote={data.adminNote} what="local" onReopen={reopen} />
         <Stepper steps={steps} current={step} onSelect={setStep} />
 

@@ -356,6 +356,10 @@ const ACTION_TEXT: Record<string, string> = {
   'export.pdf': 'downloaded PDF report',
   'region.edit': 'changed region settings',
   'political.create': 'added political district',
+  'political.delete': 'removed political district',
+  'district.rename': 'renamed district',
+  'local.rename': 'renamed local',
+  'super.view': 'opened',
   'admin.create': 'added an admin',
 };
 
@@ -373,11 +377,13 @@ export function ActivityList({ rows }: { rows: AuditRow[] }) {
               : r.actor_type === 'admin'
                 ? 'Admin'
                 : 'Someone');
-        const name = r.entity_name ?? r.detail?.name ?? '';
+        // super.view: the page the super admin opened (e.g. "Districts").
+        const name = r.entity_name ?? r.detail?.name ?? r.detail?.page ?? '';
         return (
           <li key={r.id} className="flex justify-between gap-3">
             <span className="text-ink-2">
               <b className="text-ink">{who}</b> {ACTION_TEXT[r.action] ?? r.action} {name && <b className="text-ink">{name}</b>}
+              {r.detail?.from && <span className="text-ink-3"> (was “{r.detail.from}”)</span>}
               {r.detail?.by === 'district' && <span className="text-ink-3"> (by district)</span>}
               {r.detail?.note && <span className="text-ink-3"> · “{r.detail.note}”</span>}
             </span>

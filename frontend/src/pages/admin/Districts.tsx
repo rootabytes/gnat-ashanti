@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, UserMinus, UserPlus } from 'lucide-react';
+import { Pencil, Search, UserMinus, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Alert, Button, Input, Loading, Select, SmsButton, StatusBadge, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -155,6 +155,15 @@ function DistrictRow({ d, onChanged }: { d: Row; onChanged: () => void }) {
             <WhatsAppButton href={whatsappLink(reminder, d.chairPhone)} label="Remind" />
             <SmsButton href={smsLink(reminder, d.chairPhone)} />
           </>
+        )}
+        {d.chairName && (
+          <Link
+            to={`/admin/districts/${d.id}?edit=1`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-semibold text-ink-2 hover:bg-surface-2"
+          >
+            <Pencil className="h-4 w-4" aria-hidden />
+            Edit details
+          </Link>
         )}
         {d.chairName ? (
           <Button

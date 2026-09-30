@@ -49,7 +49,7 @@ export interface Guide {
 /** The main address, used by the Ashanti explainer PDF. */
 export const SITE = siteFor(MAIN_REGION).host;
 /** Printed on the PDFs. Change it when the guides change. */
-export const GUIDES_UPDATED = '2026-09-29';
+export const GUIDES_UPDATED = '2026-09-30';
 
 /** The guides for one region: its own address and PDFs. The super admin's guide is the same everywhere. */
 export function guidesFor(code: string | null): Record<GuideRole, Guide> {
@@ -99,6 +99,7 @@ export function guidesFor(code: string | null): Record<GuideRole, Guide> {
         'Come back any time with the same link or code, on any phone.',
         'Lost your code? Ask your District Secretary or the Regional Secretary to send it again.',
         'List each workplace once, with its correct category.',
+        'Wrong name, phone or local name? Tap Edit details at the top.',
       ],
     },
 
@@ -117,7 +118,7 @@ export function guidesFor(code: string | null): Record<GuideRole, Guide> {
         {
           icon: 'user',
           title: 'Add your details',
-          body: 'Step 1, Secretary: your name and phone number, so the Regional Secretary can reach you. Tap Save & continue.',
+          body: 'Step 1, Secretary: your name and phone number, so the Regional Secretary can reach you. Tap Save & continue. To correct them or the district name later, tap Edit details at the top.',
         },
         {
           icon: 'map',
@@ -209,6 +210,7 @@ export function guidesFor(code: string | null): Record<GuideRole, Guide> {
       tips: [
         'Every Send button opens your own WhatsApp or SMS with the message ready. The system has no messaging provider.',
         'Downloads contain names and phone numbers. Keep them within GNAT.',
+        'Districts › Edit details corrects a District Secretary’s name or phone. Activity also shows when Rootabytes opened your region to help.',
         'Forgot your password? Ask the super admin for a new temporary one.',
       ],
     },
@@ -216,7 +218,7 @@ export function guidesFor(code: string | null): Record<GuideRole, Guide> {
     super: {
       role: 'super',
       name: 'Super Admin',
-      summary: 'You run the system: you add and remove admins and keep everything working. You do not see the data the regions collect.',
+      summary: 'You run the system: you add and remove admins, keep everything working, and can open any region to help it.',
       pdf: `${main.guides}/GNAT-Mapping-Guide-Super-Admin.pdf`,
       site: main.host,
       steps: [
@@ -253,11 +255,16 @@ export function guidesFor(code: string | null): Record<GuideRole, Guide> {
         {
           icon: 'track',
           title: 'Check the system',
-          body: 'System shows whether the database is working, the version running, which regions are open, and admins who have not finished setting up. Activity lists every admin sign-in and change.',
+          body: 'System shows whether the database is working, the version running, which regions are open, and admins who have not finished setting up. System activity lists every admin sign-in and change.',
+        },
+        {
+          icon: 'tree',
+          title: 'Help a region',
+          body: 'Choose the region under Region. You see its pages as its Regional Secretary does, and can make changes for them. Each page you open, and anything you change or download, is recorded in that region’s Activity with your name.',
         },
       ],
       tips: [
-        'Districts, locals, workplaces, names and phone numbers, and downloads are only for each region’s admins. The system does not show them to the super admin.',
+        'Open a region only to help it. Its Regional Secretary can see in Activity every time you did.',
         'Open a region under System only when its Regional Secretary has an admin account.',
         'The temporary password in the server settings works only once: after your first sign-in, your own password replaces it.',
       ],

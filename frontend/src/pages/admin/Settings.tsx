@@ -9,13 +9,16 @@ import { PageTitle, useAdmin } from './AdminApp';
 import type { AdminRegion } from './AdminApp';
 
 export default function Settings() {
+  const { me } = useAdmin();
+  const isSuper = me.region_id === null;
   return (
     <div className="space-y-5">
       <PageTitle title="Settings" />
       <RegistrationCard />
       <PoliticalCard />
-      <AccountCard />
-      <AdminsCard />
+      {/* The super admin's own account and the admins list are on their own pages. */}
+      {!isSuper && <AccountCard />}
+      {!isSuper && <AdminsCard />}
     </div>
   );
 }

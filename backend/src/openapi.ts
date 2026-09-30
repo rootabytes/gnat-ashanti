@@ -103,7 +103,7 @@ export const OPERATIONS: Op[] = [
     'get',
     '/api/admin/system',
     'admin',
-    'System status: database, version, regions open, admin accounts (super admin only; no regional data)',
+    'System status: database, version, regions open, admin accounts (super admin only; no regional data here)',
   ),
   op('get', '/api/admin/activity', 'admin', "The super admin's own actions and admin account events (super admin only)", {
     query: { limit: 'Rows to return (at most 500).' },

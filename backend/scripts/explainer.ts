@@ -79,7 +79,7 @@ const ACCESS: [string, string][] = [
   ['You and your region’s admins', 'Everything in your region. Nothing from other regions.'],
   ['District Secretary', 'Their own district and its locals.'],
   ['Local Secretary', 'Their own local only.'],
-  ['Rootabytes (super admin)', 'Runs the system. It is not shown any regional data.'],
+  ['Rootabytes (super admin)', 'Runs the system; may open your region to help.'],
 ];
 
 const YOUR_PART = [

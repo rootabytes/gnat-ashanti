@@ -59,16 +59,47 @@ const admin = (req: any) => req.session as { adminId: number; regionId: number |
 
 /**
  * What the regions collect (districts, locals, workplaces, secretaries' names and phones, codes,
- * exports, the regional activity log) is for that region's admins only. The super admin runs the
- * system and manages admins, and is not cleared to see it: every regional route goes through one
- * of these three checks, which refuse an admin without a region.
+ * exports, the regional activity log) is for that region's admins. The super admin (no region of
+ * their own) may open any region to support it by naming it with ?regionId=. Each time, that
+ * region's activity log records it (superView below), so its Regional Secretary sees when
+ * Rootabytes looked. Every regional route goes through one of these three checks.
  */
-const REGIONAL_ONLY = 'Regional data is for regional admins only. The super admin manages admins and the system.';
-
 function regionalAdmin(req: any): number {
-  const id = admin(req).regionId;
-  if (!id) throw new HttpError(403, REGIONAL_ONLY);
+  const a = admin(req);
+  if (a.regionId) return a.regionId;
+  const id = Number(req.query.regionId);
+  if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, 'Choose a region first.');
+  req.superRegionId = id;
+  superView(req, id);
   return id;
+}
+
+/** The page a regional request belongs to, as the Regional Secretary knows it. */
+const PAGES: [RegExp, string][] = [
+  [/^\/(overview|duplicates)/, 'Overview'],
+  [/^\/tree/, 'Structure'],
+  [/^\/(districts|locals)/, 'Districts'],
+  [/^\/codes/, 'Access codes'],
+  [/^\/audit/, 'Activity'],
+  [/^\/(political-districts|regions)/, 'Settings'],
+  [/^\/(export|report)/, 'Downloads'],
+];
+const SUPER_VIEW_EVERY_MS = 10 * 60_000;
+const lastSuperView = new Map<string, number>();
+
+/**
+ * Records a super admin opening a region's page in that region's activity log: at most once per page
+ * every 10 minutes, so a busy session doesn't flood the log. Changes and downloads are recorded by the
+ * routes themselves, under the super admin's name.
+ */
+function superView(req: any, regionId: number) {
+  if (req.method !== 'GET') return;
+  const page = PAGES.find(([re]) => re.test(req.path))?.[1] ?? 'Dashboard';
+  const key = `${admin(req).adminId}:${regionId}:${page}`;
+  const now = Date.now();
+  if (now - (lastSuperView.get(key) ?? 0) < SUPER_VIEW_EVERY_MS) return;
+  lastSuperView.set(key, now);
+  void audit(req, 'super.view', { type: 'region', id: regionId, regionId }, { page });
 }
 
 /** The signed-in regional admin's own region. */
@@ -100,12 +131,11 @@ const isDemoAdmin = (a: { email: string | null }) => config.demoMode && !!a.emai
 
 adminRouter.get('/me', async (req, res) => {
   const a = await one(`SELECT ${ADMIN_FIELDS} FROM admins WHERE id = $1`, [admin(req).adminId]);
-  // The super admin sees which regions exist and are open, not their settings.
+  // A regional admin gets their own region; the super admin every region, to open any of them.
   const regions = await query(
-    a.region_id
-      ? `SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1`
-      : `SELECT id, name, code, active FROM regions ORDER BY active DESC, name`,
-    a.region_id ? [a.region_id] : [],
+    `SELECT id, name, code, active, political_regions, registration_key FROM regions
+      WHERE $1::int IS NULL OR id = $1 ORDER BY active DESC, name`,
+    [a.region_id],
   );
   res.json({ ...a, demo: isDemoAdmin(a), regions });
 });
@@ -402,9 +432,8 @@ adminRouter.patch('/regions/:id', async (req, res) => {
   if (a.regionId && a.regionId !== id) throw new HttpError(404, 'Region not found');
   const b = parse(regionSchema, req.body);
   if (b.active !== undefined && a.regionId) throw new HttpError(403, 'Only the super admin can open or close regions.');
-  // The super admin opens and closes regions; each region's own settings are its admins'.
-  if (!a.regionId && (b.registrationKey !== undefined || b.politicalRegions !== undefined)) throw new HttpError(403, REGIONAL_ONLY);
   if (!(await one('SELECT id FROM regions WHERE id = $1', [id]))) throw new HttpError(404, 'Region not found');
+  if (!a.regionId) (req as any).superRegionId = id; // logged in the region as "(super admin)"
   await query(
     `UPDATE regions SET registration_key = CASE WHEN $2::boolean THEN $3 ELSE registration_key END,
        active = COALESCE($4, active), political_regions = COALESCE($5, political_regions) WHERE id = $1`,
@@ -416,14 +445,7 @@ adminRouter.patch('/regions/:id', async (req, res) => {
     { type: 'region', id, regionId: id },
     { ...b, registrationKey: b.registrationKey ? '(set)' : b.registrationKey },
   );
-  res.json(
-    await one(
-      a.regionId
-        ? 'SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1'
-        : 'SELECT id, name, code, active FROM regions WHERE id = $1',
-      [id],
-    ),
-  );
+  res.json(await one('SELECT id, name, code, active, political_regions, registration_key FROM regions WHERE id = $1', [id]));
 });
 
 adminRouter.get('/political-districts', async (req, res) => {
@@ -446,7 +468,8 @@ adminRouter.delete('/political-districts/:id', async (req, res) => {
   const id = intParam(req.params.id);
   const used = await one('SELECT count(*)::int AS n FROM district_political_districts WHERE political_district_id = $1', [id]);
   if (used?.n) throw new HttpError(409, `This district is mapped by ${used.n} GNAT district(s). Remove it from them first.`);
-  await query('DELETE FROM political_districts WHERE id = $1 AND region_id = $2', [id, r.id]);
+  const gone = await one('DELETE FROM political_districts WHERE id = $1 AND region_id = $2 RETURNING name', [id, r.id]);
+  if (gone) await audit(req, 'political.delete', { type: 'political', id, regionId: r.id }, { name: gone.name });
   res.json({ ok: true });
 });
 
@@ -545,7 +568,7 @@ adminRouter.delete('/admins/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ----- the super admin's own views: the system and admin activity, never regional data -----
+// ----- the super admin's own views: the system and admin activity (regions are opened with ?regionId=) -----
 
 const startedAt = new Date();
 

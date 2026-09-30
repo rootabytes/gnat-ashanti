@@ -5,7 +5,7 @@ import { requireRole } from '../auth';
 import { query } from '../db';
 import { ghPhone, nameStr, optionalText, parse } from '../http';
 import { parseUnitsFile } from '../importUnits';
-import { localDetail, reopenLocal, replaceUnits, submitLocal, unitsSchema } from '../services';
+import { getLocalRow, localDetail, renameEntity, reopenLocal, replaceUnits, submitLocal, unitsSchema } from '../services';
 
 export const localRouter = Router();
 localRouter.use(requireRole('local'));
@@ -17,6 +17,8 @@ localRouter.get('/me', async (req, res) => {
 });
 
 export const detailsSchema = z.object({
+  /** The local's own name: can be corrected until the local is approved. */
+  name: nameStr.optional(),
   chairName: nameStr.optional(),
   chairPhone: ghPhone,
   remarks: optionalText(1000),
@@ -24,6 +26,8 @@ export const detailsSchema = z.object({
 
 localRouter.patch('/me', async (req, res) => {
   const b = parse(detailsSchema, req.body);
+  const renamed = await renameEntity('local', await getLocalRow(sid(req)), b.name);
+  if (renamed) await audit(req, 'local.rename', { type: 'local', id: sid(req) }, renamed);
   await query(
     `UPDATE locals SET chair_name = COALESCE($2, chair_name), chair_phone = COALESCE($3, chair_phone),
        remarks = $4, updated_at = now() WHERE id = $1`,

@@ -74,7 +74,10 @@ export default function Privacy() {
                 'Their own district and its locals, including the Local Secretaries’s names, phone numbers and access codes.',
               ],
               ['Local Secretary', 'Their own local only.'],
-              [ROOTABYTES.name, 'Only what is needed to run, support and fix the system.'],
+              [
+                ROOTABYTES.name,
+                'Only what is needed to run, support and fix the system. Its super admin can open a region to help it; each time, that region’s activity log records it, so the Regional Secretary can see it.',
+              ],
             ]}
           />
           <p className="mt-3">Nobody else, unless the law requires it.</p>

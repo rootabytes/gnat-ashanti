@@ -56,20 +56,28 @@ await admin.getByText('Everything is working').waitFor();
   console.log('✓ super admin guide on first sign-in, with working PDFs, only once');
 }
 await shot(admin, '00c-super-system');
-// The super admin is not cleared for regional data: no regional pages, and the API refuses it.
+// The super admin's own pages show no regional data; a region opens only from the Region menu,
+// with a notice that the visit is recorded in that region's activity log.
 for (const name of ['Districts', 'Structure', 'Access codes', 'Downloads']) {
-  if (await admin.getByRole('link', { name, exact: true }).count()) errors.push(`super admin menu shows ${name}`);
+  if (await admin.getByRole('link', { name, exact: true }).count()) errors.push(`super admin System page shows ${name}`);
 }
-await admin.goto(`${WEB}/admin/downloads`);
-await admin.getByText('Everything is working').waitFor();
+await admin.getByLabel('Region', { exact: true }).selectOption({ label: 'Ashanti' });
+await admin.getByText('Support access: Ashanti Region').waitFor();
+await admin.getByText('Ashanti Region overview').waitFor();
+await shot(admin, '00d-super-in-region');
 {
   const token = JSON.parse(await admin.evaluate(() => localStorage.getItem('gnat.admin'))).token;
-  for (const path of ['/admin/tree', '/admin/codes', '/admin/export.xlsx', '/admin/report.pdf']) {
-    const r = await fetch(`http://localhost:4000/api${path}`, { headers: { Authorization: `Bearer ${token}` } });
-    if (r.status !== 403) errors.push(`super admin got ${r.status} from ${path}, expected 403`);
+  const ash = (await (await fetch('http://localhost:4000/api/meta')).json()).regions.find((r) => r.code === 'ASH');
+  for (const path of ['/admin/tree', '/admin/codes']) {
+    const none = await fetch(`http://localhost:4000/api${path}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (none.status !== 400) errors.push(`super admin got ${none.status} from ${path} without a region, expected 400`);
+    const inAsh = await fetch(`http://localhost:4000/api${path}?regionId=${ash.id}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (inAsh.status !== 200) errors.push(`super admin got ${inAsh.status} from ${path} in Ashanti, expected 200`);
   }
 }
-console.log('✓ super admin sees the system, not regional data');
+await admin.getByRole('link', { name: 'System', exact: true }).click();
+await admin.getByText('Everything is working').waitFor();
+console.log('✓ super admin opens a region from the Region menu, with the support-access notice');
 
 // The super admin adds the Regional Secretary by WhatsApp number...
 await admin.getByRole('link', { name: 'Admins' }).click();
@@ -104,7 +112,7 @@ await asst.context().close();
 console.log('✓ Regional Secretary added, signed in by phone, set his own email and password');
 
 // The super admin's Activity shows the new admin signing in.
-await admin.getByRole('link', { name: 'Activity' }).click();
+await admin.getByRole('link', { name: 'System activity' }).click();
 await admin.getByText('Regional Secretary signed in').first().waitFor();
 console.log('✓ super admin activity shows admin sign-ins');
 

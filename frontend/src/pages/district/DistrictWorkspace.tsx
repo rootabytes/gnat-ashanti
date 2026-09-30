@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pencil, RotateCcw, Send, Share2, Trash2, UserMinus, UserPlus } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import { ChairShell, PoliticalPicker, StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
+import { ChairShell, PoliticalPicker, SecretaryDetails, StatusBanner, Stepper, StepNav, TitleRow } from '../../components/chair';
 import {
   Alert,
   Button,
@@ -179,6 +179,17 @@ function DistrictFlow() {
         <p className="text-sm text-ink-3">GNAT {d.regionName} Region</p>
       </TitleRow>
       <div className="space-y-4">
+        <SecretaryDetails
+          kind="district"
+          who="Your details"
+          name={d.name}
+          chairName={d.chairName}
+          chairPhone={d.chairPhone}
+          status={d.status}
+          onSave={async (x) =>
+            hydrate(await api.chair.patch<DistrictDetail>('/district/me', { ...x, chairGroup: d.chairGroup, remarks: d.remarks }))
+          }
+        />
         <StatusBanner status={d.status} adminNote={d.adminNote} what="district" onReopen={reopen} />
         {editable && step !== 2 && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-brand bg-brand-soft p-3 sm:p-4">
@@ -568,7 +579,7 @@ function LocalsStep({
       />
       <EditLocalModal
         local={editing}
-        canRename={editable}
+        canRename={editing?.status !== 'approved'}
         onClose={() => setEditing(null)}
         onSaved={(x) => {
           onChange(x);
@@ -708,7 +719,7 @@ function EditLocalModal({
           value={f.name}
           disabled={!canRename}
           onChange={(e) => setF({ ...f, name: e.target.value })}
-          hint={!canRename ? 'Reopen the district to rename a local.' : undefined}
+          hint={!canRename ? 'This local is approved, so its name is locked. Ask the Regional Secretary to return it first.' : undefined}
         />
         <TextField label="Local Secretary" value={f.chairName} onChange={(e) => setF({ ...f, chairName: e.target.value })} />
         <TextField

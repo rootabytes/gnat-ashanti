@@ -10,6 +10,35 @@ export const isEditable = (s: Status) => s === 'draft' || s === 'returned';
 
 export const MAX_UNITS_PER_LOCAL = 400;
 
+/**
+ * Secretaries can correct the name of their district or local, even after submitting, until it is
+ * approved. After that it is locked: the Regional Secretary returns it first (or renames it).
+ */
+export async function renameEntity(
+  kind: 'district' | 'local',
+  row: { id: number; name: string; status: Status },
+  name: string | undefined,
+): Promise<{ from: string; to: string } | null> {
+  if (!name || name === row.name) return null;
+  if (row.status === 'approved') {
+    throw new HttpError(409, `This ${kind} has been approved, so its name is locked. Ask the Regional Secretary to return it first.`);
+  }
+  try {
+    await query(`UPDATE ${kind === 'district' ? 'districts' : 'locals'} SET name = $2, updated_at = now() WHERE id = $1`, [row.id, name]);
+  } catch (e: any) {
+    if (e?.code === '23505') {
+      throw new HttpError(
+        409,
+        kind === 'district'
+          ? 'Another district in your region already has that name.'
+          : 'Another local in this district already has that name.',
+      );
+    }
+    throw e;
+  }
+  return { from: row.name, to: name };
+}
+
 export const unitsSchema = z.object({
   units: z
     .array(

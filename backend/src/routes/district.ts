@@ -9,9 +9,11 @@ import { parseUnitsFile } from '../importUnits';
 import {
   districtDetail,
   getDistrictRow,
+  getLocalRow,
   isEditable,
   localDetail,
   reopenDistrict,
+  renameEntity,
   reopenLocal,
   replaceUnits,
   submitDistrict,
@@ -49,6 +51,8 @@ districtRouter.get('/me', async (req, res) => {
 });
 
 export const detailsSchema = z.object({
+  /** The district's own name: can be corrected until the district is approved. */
+  name: nameStr.optional(),
   chairName: nameStr.optional(),
   chairPhone: ghPhone,
   chairGroup: optionalText(150),
@@ -57,6 +61,8 @@ export const detailsSchema = z.object({
 
 districtRouter.patch('/me', async (req, res) => {
   const b = parse(detailsSchema, req.body);
+  const renamed = await renameEntity('district', await getDistrictRow(sid(req)), b.name);
+  if (renamed) await audit(req, 'district.rename', { type: 'district', id: sid(req) }, renamed);
   await query(
     `UPDATE districts SET chair_name = COALESCE($2, chair_name), chair_phone = COALESCE($3, chair_phone),
        chair_group = $4, remarks = $5, updated_at = now() WHERE id = $1`,
@@ -111,13 +117,12 @@ districtRouter.post('/locals', async (req, res) => {
 districtRouter.patch('/locals/:id', async (req, res) => {
   const id = await ownLocal(req);
   const b = parse(localSchema.partial({ name: true }), req.body);
-  // Renaming changes the district's list, so it needs the district to be open.
-  // Contact details can be corrected at any time.
-  if (b.name) await requireEditable(sid(req));
+  // Contact details can be corrected at any time, the name until the local is approved.
+  const renamed = await renameEntity('local', await getLocalRow(id), b.name);
+  if (renamed) await audit(req, 'local.rename', { type: 'local', id }, { ...renamed, by: 'district' });
   await query(
-    `UPDATE locals SET name = COALESCE($2, name), chair_name = COALESCE($3, chair_name),
-       chair_phone = COALESCE($4, chair_phone), updated_at = now() WHERE id = $1`,
-    [id, b.name ?? null, b.chairName, b.chairPhone],
+    `UPDATE locals SET chair_name = COALESCE($2, chair_name), chair_phone = COALESCE($3, chair_phone), updated_at = now() WHERE id = $1`,
+    [id, b.chairName, b.chairPhone],
   );
   res.json(await detail(req));
 });

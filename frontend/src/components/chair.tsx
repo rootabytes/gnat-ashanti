@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Check, LogOut, Search, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, LogOut, Pencil, Search, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { session } from '../lib/api';
@@ -9,7 +9,8 @@ import type { PoliticalDistrict } from '../lib/types';
 import { BrandBar, Footer } from './Brand';
 import { GuideButton, GuideDialog, useGuide } from './Guide';
 import type { GuideRole } from '../lib/guides';
-import { Alert, Button, cx, Input, StatusBadge } from './ui';
+import { fmtPhone } from '../lib/format';
+import { Alert, Button, cx, Input, Modal, StatusBadge, TextField } from './ui';
 
 /** `guide`: the role guide to show on this person's first sign-in and from the Guide button. */
 export function ChairShell({
@@ -263,6 +264,131 @@ export function PoliticalPicker({
         ))}
         {!shown.length && <li className="px-3 py-4 text-sm text-ink-3">No match for “{q}”.</li>}
       </ul>
+    </div>
+  );
+}
+
+export interface DetailsInput {
+  name: string;
+  chairName: string;
+  chairPhone: string;
+}
+
+/**
+ * The secretary's name and phone, and the district or local's name, with an Edit button that works at
+ * every step, including after submitting. The name locks once approved (the API says the same).
+ */
+export function SecretaryDetails({
+  kind,
+  who,
+  name,
+  chairName,
+  chairPhone,
+  status,
+  onSave,
+}: {
+  kind: 'district' | 'local';
+  /** e.g. "Your details" or "Local Secretary". */
+  who: string;
+  name: string;
+  chairName: string | null;
+  chairPhone: string | null;
+  status: Status;
+  onSave: (d: DetailsInput) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState<DetailsInput>({ name, chairName: chairName ?? '', chairPhone: fmtPhone(chairPhone) });
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const approved = status === 'approved';
+  const label = kind === 'district' ? 'GNAT District name' : 'Local name';
+
+  async function save() {
+    setErr(null);
+    setBusy(true);
+    try {
+      await onSave({ ...f, name: f.name.trim() });
+      setOpen(false);
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm">
+      <div className="min-w-0 text-sm">
+        <p className="text-ink-3">{who}</p>
+        <p className="font-semibold text-ink">
+          {chairName || <span className="text-danger">Name missing</span>}
+          {chairPhone && <span className="font-normal text-ink-2"> · {fmtPhone(chairPhone)}</span>}
+        </p>
+      </div>
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => {
+          setF({ name, chairName: chairName ?? '', chairPhone: fmtPhone(chairPhone) });
+          setErr(null);
+          setOpen(true);
+        }}
+      >
+        <Pencil className="h-4 w-4" aria-hidden />
+        Edit details
+      </Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Edit details"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={save} busy={busy}>
+              Save
+            </Button>
+          </>
+        }
+      >
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
+        >
+          <TextField
+            label="Full name"
+            value={f.chairName}
+            onChange={(e) => setF({ ...f, chairName: e.target.value })}
+            autoComplete="name"
+          />
+          <TextField
+            label="Phone number"
+            type="tel"
+            inputMode="tel"
+            placeholder="024 123 4567"
+            value={f.chairPhone}
+            onChange={(e) => setF({ ...f, chairPhone: e.target.value })}
+            autoComplete="tel"
+          />
+          <TextField
+            label={label}
+            value={f.name}
+            onChange={(e) => setF({ ...f, name: e.target.value })}
+            disabled={approved}
+            hint={
+              approved
+                ? `Approved, so the name is locked. Ask the Regional Secretary to return it if it must change.`
+                : 'Correct it if it is misspelt. This works even after submitting, until it is approved.'
+            }
+          />
+          {err && <Alert tone="error">{err}</Alert>}
+          <button type="submit" hidden />
+        </form>
+      </Modal>
     </div>
   );
 }

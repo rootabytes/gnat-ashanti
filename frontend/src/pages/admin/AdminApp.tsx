@@ -7,12 +7,13 @@ import {
   LayoutDashboard,
   LogOut,
   Network,
+  Server,
   Settings as SettingsIcon,
   UserPlus,
   UserRound,
   Users,
 } from 'lucide-react';
-import { Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BrandBar, Footer } from '../../components/Brand';
 import { Alert, Button, Card, cx, Loading, Select, TextField } from '../../components/ui';
 import { api, session } from '../../lib/api';
@@ -45,7 +46,7 @@ export interface AdminMe {
   email: string | null;
   phone: string | null;
   name: string;
-  /** null: the super admin, who manages admins and the system and sees no regional data. */
+  /** null: the super admin, who manages admins and the system and can open any region (logged there). */
   region_id: number | null;
   /** Signed in with a temporary password: must choose their own before anything else. */
   must_change_password: boolean;
@@ -78,13 +79,17 @@ const NAV = [
   { to: '/admin/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
-/** The super admin's menu: no regional pages, because the API refuses them regional data. */
+/** The super admin's own pages. */
 const SUPER_NAV = [
-  { to: '/admin', label: 'System', end: true, icon: LayoutDashboard },
+  { to: '/admin', label: 'System', end: true, icon: Server },
   { to: '/admin/admins', label: 'Admins', icon: Users },
-  { to: '/admin/activity', label: 'Activity', icon: History },
+  { to: '/admin/log', label: 'System activity', icon: History },
   { to: '/admin/account', label: 'Your account', icon: UserRound },
 ];
+
+/** The super admin in a region: the Regional Secretary's pages, with the Overview moved off /admin. */
+const SUPER_REGION_NAV = NAV.map((n) => (n.to === '/admin' ? { ...n, to: '/admin/region' } : n));
+const REGIONAL_PATHS = /^\/admin\/(region|districts|structure|codes|downloads|activity|settings)(\/|$)/;
 
 export default function AdminApp() {
   const [signedIn, setSignedIn] = useState(!!session.admin());
@@ -122,6 +127,7 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
     reloadMe();
   }, []);
 
+  const { pathname } = useLocation();
   const region = me ? (me.regions.find((r) => r.id === regionId) ?? me.regions.find((r) => r.active) ?? me.regions[0]) : null;
   const rid = region?.id;
   // Stable per region so pages can list it as an effect dependency without refetch loops.
@@ -140,8 +146,8 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
       </div>
     );
   if (!me || !region || !ctx) return <Loading />;
-  // Links this admin sends (codes, the register link) use their region's own address.
-  setSessionRegion(me.region_id === null ? null : region.code);
+  // Links this admin sends (codes, the register link) use the region's own address.
+  setSessionRegion(region.code);
 
   const signOut = () => {
     session.setAdmin(null);
@@ -172,7 +178,17 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
   }
 
   const isSuper = me.region_id === null;
-  const menu = isSuper ? SUPER_NAV : NAV;
+  const inRegion = !isSuper || REGIONAL_PATHS.test(pathname);
+  const chooseRegion = (id: number) => {
+    setRegionId(id);
+    try {
+      localStorage.setItem('gnat.admin.region', String(id));
+    } catch {
+      /* ignore */
+    }
+  };
+  // The super admin can open every region; a regional admin only switches between their own (open) ones.
+  const pickable = isSuper ? me.regions : me.regions.filter((r) => r.active || r.id === region.id);
   return (
     <AdminCtx.Provider value={ctx}>
       <div className="min-h-dvh">
@@ -182,28 +198,18 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
           right={
             <>
               <GuideButton onClick={guide.show} />
-              {!isSuper && me.regions.filter((r) => r.active || r.id === region.id).length > 1 && (
+              {!isSuper && pickable.length > 1 && (
                 <Select
                   aria-label="Region"
                   className="h-9 w-40 text-sm"
                   value={region.id}
-                  onChange={(e) => {
-                    const id = Number(e.target.value);
-                    setRegionId(id);
-                    try {
-                      localStorage.setItem('gnat.admin.region', String(id));
-                    } catch {
-                      /* ignore */
-                    }
-                  }}
+                  onChange={(e) => chooseRegion(Number(e.target.value))}
                 >
-                  {me.regions
-                    .filter((r) => r.active || r.id === region.id)
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
+                  {pickable.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
                 </Select>
               )}
               <Button variant="ghost" size="sm" className="whitespace-nowrap" onClick={signOut}>
@@ -219,7 +225,41 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             className="no-print relative -mx-4 overflow-x-auto border-b border-line px-4 lg:mx-0 lg:w-48 lg:shrink-0 lg:border-0 lg:px-0 lg:pt-6"
           >
             <ul className="flex gap-1 py-2 lg:sticky lg:top-20 lg:flex-col lg:py-0">
-              {!isSuper && (
+              {isSuper && (
+                <>
+                  <NavItems items={SUPER_NAV} />
+                  <li className="flex shrink-0 items-center gap-2 border-l border-line pl-2 lg:mt-4 lg:mb-2 lg:block lg:border-l-0 lg:border-t lg:pl-0 lg:pt-4">
+                    <label
+                      htmlFor="super-region"
+                      className="whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-ink-3 lg:mb-1 lg:block"
+                    >
+                      Region
+                    </label>
+                    <Select
+                      id="super-region"
+                      className="h-9 w-36 text-sm lg:w-full"
+                      value={inRegion ? region.id : ''}
+                      onChange={(e) => {
+                        chooseRegion(Number(e.target.value));
+                        if (!inRegion) nav('/admin/region');
+                      }}
+                    >
+                      {!inRegion && (
+                        <option value="" disabled>
+                          Open a region…
+                        </option>
+                      )}
+                      {pickable.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                          {r.active ? '' : ' (closed)'}
+                        </option>
+                      ))}
+                    </Select>
+                  </li>
+                </>
+              )}
+              {inRegion && (
                 <li className="lg:mb-3">
                   <button
                     type="button"
@@ -231,32 +271,32 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
                   </button>
                 </li>
               )}
-              {menu.map((n) => (
-                <li key={n.to}>
-                  <NavLink
-                    to={n.to}
-                    end={n.end}
-                    className={({ isActive }) =>
-                      cx(
-                        'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
-                        isActive ? 'bg-brand-soft text-brand' : 'text-ink-2 hover:bg-surface-2',
-                      )
-                    }
-                  >
-                    <n.icon className="h-4 w-4" aria-hidden />
-                    {n.label}
-                  </NavLink>
-                </li>
-              ))}
+              {inRegion && <NavItems items={isSuper ? SUPER_REGION_NAV : NAV} />}
             </ul>
           </nav>
           <main className="min-w-0 flex-1 py-6" key={region.id}>
+            {isSuper && inRegion && (
+              <div className="mb-5">
+                <Alert tone="info" title={`Support access: ${region.name} Region`}>
+                  You see what its Regional Secretary sees. Each page you open, and anything you change or download, is recorded in the
+                  region&rsquo;s activity log with your name.
+                </Alert>
+              </div>
+            )}
             {isSuper ? (
               <Routes>
                 <Route index element={<SystemPage />} />
                 <Route path="admins" element={<AdminsPage />} />
-                <Route path="activity" element={<SuperActivity />} />
+                <Route path="log" element={<SuperActivity />} />
                 <Route path="account" element={<AccountPage />} />
+                <Route path="region" element={<Overview />} />
+                <Route path="districts" element={<Districts />} />
+                <Route path="districts/:id" element={<DistrictReview />} />
+                <Route path="structure" element={<Structure />} />
+                <Route path="codes" element={<Codes />} />
+                <Route path="downloads" element={<Downloads />} />
+                <Route path="activity" element={<Activity />} />
+                <Route path="settings" element={<Settings />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Routes>
             ) : (
@@ -274,10 +314,34 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
             )}
           </main>
         </div>
-        {!isSuper && <AddDistrictModal open={adding} onClose={() => setAdding(false)} onAdded={() => setDistrictsVersion((v) => v + 1)} />}
+        {inRegion && <AddDistrictModal open={adding} onClose={() => setAdding(false)} onAdded={() => setDistrictsVersion((v) => v + 1)} />}
         <Footer />
       </div>
     </AdminCtx.Provider>
+  );
+}
+
+function NavItems({ items }: { items: typeof NAV }) {
+  return (
+    <>
+      {items.map((n) => (
+        <li key={n.to}>
+          <NavLink
+            to={n.to}
+            end={n.end}
+            className={({ isActive }) =>
+              cx(
+                'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
+                isActive ? 'bg-brand-soft text-brand' : 'text-ink-2 hover:bg-surface-2',
+              )
+            }
+          >
+            <n.icon className="h-4 w-4" aria-hidden />
+            {n.label}
+          </NavLink>
+        </li>
+      ))}
+    </>
   );
 }
 

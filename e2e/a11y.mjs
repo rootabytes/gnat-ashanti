@@ -95,7 +95,8 @@ for (const scheme of ['light', 'dark']) {
   for (const [name, path, text] of [
     ['super system', '/admin', 'Everything is working'],
     ['super admins', '/admin/admins', 'Add admin'],
-    ['super activity', '/admin/activity', 'signed in'],
+    ['super activity', '/admin/log', 'signed in'],
+    ['super in region', '/admin/region', 'Support access'],
     ['super account', '/admin/account', 'Change your password'],
   ]) {
     await audit(superDesk, `${name}${tag}`, `${WEB}${path}`, (p) => p.getByText(text).first().waitFor());

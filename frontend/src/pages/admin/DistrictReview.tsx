@@ -168,7 +168,7 @@ export default function DistrictReview() {
           title="District Secretary"
           action={
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
-              {editing ? 'Close' : 'Edit'}
+              {editing ? 'Close' : 'Edit details'}
             </Button>
           }
         >

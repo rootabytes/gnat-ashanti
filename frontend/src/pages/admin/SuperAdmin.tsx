@@ -1,6 +1,6 @@
-// The super admin's dashboard: is the system working, who the admins are, and what happened to
-// admin accounts. The super admin is not cleared for regional data, so nothing here (and nothing
-// the API gives this account) shows districts, locals, workplaces, secretaries or downloads.
+// The super admin's own dashboard: is the system working, who the admins are, and what happened to
+// admin accounts. Regional data is not shown here: the super admin opens a region from the Region
+// menu, and each time that region's activity log records it.
 import { useEffect, useState } from 'react';
 import {
   Activity as ActivityIcon,
@@ -46,7 +46,11 @@ const ACTION: Record<string, string> = {
   'admin.password': 'set their own password',
   'admin.reset_password': 'issued a new temporary password',
   'admin.remove': 'removed admin',
-  'region.edit': 'changed which regions are open',
+  'region.edit': 'changed region settings',
+  'super.view': 'opened a regional page',
+  'export.xlsx': 'downloaded Excel',
+  'export.csv': 'downloaded CSV',
+  'export.pdf': 'downloaded the PDF report',
 };
 
 export function SystemPage() {
@@ -91,7 +95,10 @@ export function SystemPage() {
   const healthy = s.database.ok;
   return (
     <div className="space-y-5">
-      <PageTitle title="System" sub="Is everything working, and who can sign in. Regional data stays with each region's admins." />
+      <PageTitle
+        title="System"
+        sub="Is everything working, and who can sign in. To help a region, choose it under Region: each page you open is recorded in its activity log."
+      />
 
       <Alert tone={healthy ? 'success' : 'error'} title={healthy ? 'Everything is working' : 'The database is not responding'}>
         {healthy
@@ -182,7 +189,10 @@ export function SuperActivity() {
   if (!rows) return <Loading />;
   return (
     <div>
-      <PageTitle title="Activity" sub="Your actions and every admin account event: sign-ins, set-up, passwords. The last 300." />
+      <PageTitle
+        title="System activity"
+        sub="Every admin account event (sign-ins, set-up, passwords) and your own actions, including regions you opened. The last 300."
+      />
       <Card>
         {rows.length ? (
           <ul className="space-y-2 text-sm">

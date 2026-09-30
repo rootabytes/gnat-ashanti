@@ -157,7 +157,7 @@ export function AccountCard() {
       title="Your account"
       subtitle={
         me.region_id === null
-          ? 'Super admin: manages admins and the system. No access to regional data.'
+          ? 'Super admin: manages admins and the system, and can open any region to support it (recorded in that region’s activity log).'
           : `Admin for the ${me.regions[0]?.name} Region.`
       }
     >
@@ -270,7 +270,7 @@ export function AdminsCard() {
   return (
     <Card
       title="Admins"
-      subtitle="People who can open this dashboard. A regional admin sees and manages only their region's data. The super admin manages admins and the system, and sees no regional data."
+      subtitle="People who can open this dashboard. A regional admin sees and manages only their region's data. The super admin manages admins and the system, and can open any region; each time, that region's activity log records it."
     >
       {rows && (
         <ul className="mb-5 divide-y divide-line rounded-lg border border-line">
@@ -396,7 +396,7 @@ export function AdminsCard() {
                 {r.name} Region only
               </option>
             ))}
-            <option value="">Super admin (admins and system, no regional data)</option>
+            <option value="">Super admin (admins, system, and every region, logged)</option>
           </Select>
         </div>
         <Button type="submit" className="self-end justify-self-start" busy={busy}>
