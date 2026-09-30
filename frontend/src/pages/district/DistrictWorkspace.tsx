@@ -21,6 +21,7 @@ import {
 } from '../../components/ui';
 import { api, session } from '../../lib/api';
 import { districtInviteMessage, fmtPhone, localInviteMessage, plural, smsLink, whatsappLink } from '../../lib/format';
+import { setSessionRegion } from '../../lib/sites';
 import type { DistrictDetail, LocalSummary, PoliticalDistrict } from '../../lib/types';
 import { useSignedOutRedirect } from '../../lib/useSignedOut';
 
@@ -58,6 +59,7 @@ function DistrictFlow() {
 
   const hydrate = useCallback((x: DistrictDetail) => {
     setD(x);
+    setSessionRegion(x.regionCode);
     setForm({ chairName: x.chairName ?? '', chairPhone: fmtPhone(x.chairPhone), chairGroup: x.chairGroup ?? '', remarks: x.remarks ?? '' });
     setPicked(x.politicalDistricts.map((p) => p.id));
     setPickDirty(false);

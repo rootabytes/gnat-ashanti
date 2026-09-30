@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Button, Card, CopyButton, Loading, Select, TextField, useConfirm, useToast, WhatsAppButton } from '../../components/ui';
 import { api } from '../../lib/api';
 import { whatsappLink } from '../../lib/format';
+import { siteOrigin } from '../../lib/sites';
 import type { PoliticalDistrict } from '../../lib/types';
 import { AccountCard, AdminsCard } from './Account';
 import { PageTitle, useAdmin } from './AdminApp';
@@ -19,11 +20,14 @@ export default function Settings() {
   );
 }
 
+/** The register link for one region, so its District Secretaries never have to pick the region. */
+export const registrationLink = (region: AdminRegion) => `${siteOrigin(region.code)}/register?region=${region.code}`;
+
 /** The message for the District Secretaries' WhatsApp group: the registration link and key. */
 export function registrationMessage(region: AdminRegion) {
   return (
     `GNAT ${region.name} Region: Structure Mapping\n\n` +
-    `District Secretaries, please register your GNAT district and fill in the mapping form here:\n${window.location.origin}/register\n` +
+    `District Secretaries, please register your GNAT district and fill in the mapping form here:\n${registrationLink(region)}\n` +
     (region.registration_key ? `\nRegistration key: ${region.registration_key}\n` : '') +
     `\nAfter registering you will get an access code. Keep it safe; you need it to continue later and to add your Local Secretaries.`
   );
@@ -34,7 +38,7 @@ function RegistrationCard() {
   const toast = useToast();
   const [key, setKey] = useState(region.registration_key ?? '');
   const [busy, setBusy] = useState(false);
-  const link = `${window.location.origin}/register`;
+  const link = registrationLink(region);
   const message = registrationMessage(region);
 
   return (

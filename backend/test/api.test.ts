@@ -501,6 +501,53 @@ test('the super admin manages admins and sees the system, but never regional dat
   assert.equal((await api('PATCH', `/admin/regions/${ash.id}`, { active: false }, rt)).status, 403);
 });
 
+test('Eastern Region: opened by the super admin, with its own MMDAs, admin and districts', async () => {
+  const sa = (await api('POST', '/admin/login', { login: 'secretary@example.com', password: 'a-brand-new-password' })).data.token;
+  const rt = (await api('POST', '/admin/login', { login: 'regional@example.com', password: 'regional-own-password' })).data.token;
+  const eas = (await api('GET', '/admin/me', undefined, sa)).data.regions.find((r: any) => r.code === 'EAS');
+  const ashPd = (await api('GET', '/admin/political-districts', undefined, rt)).data[0];
+  const newJuaben = { regionId: eas.id, districtName: 'New Juaben South', chairName: 'Kwame Boateng', chairPhone: '0244556677' };
+
+  // closed until the super admin opens it
+  assert.ok(!(await api('GET', '/meta')).data.regions.some((r: any) => r.code === 'EAS'));
+  assert.equal((await api('POST', '/register', newJuaben)).status, 400);
+  assert.equal((await api('PATCH', `/admin/regions/${eas.id}`, { active: true }, sa)).status, 200);
+  assert.deepEqual(
+    (await api('GET', '/meta')).data.regions.map((r: any) => r.code),
+    ['ASH', 'EAS'],
+  );
+  const pds = (await api('GET', `/regions/${eas.id}/political-districts`)).data;
+  assert.equal(pds.length, 33);
+  assert.ok(pds.some((p: any) => p.name === 'New Juaben South' && p.kind === 'Municipal'));
+
+  // its own Regional Secretary
+  const add = await api('POST', '/admin/admins', { name: 'Eastern Secretary', phone: '0205550101', regionId: eas.id }, sa);
+  assert.equal(add.status, 201, JSON.stringify(add.data));
+  let et = (await api('POST', '/admin/login', { login: '0205550101', password: add.data.tempPassword })).data.token;
+  et = (await api('PATCH', '/admin/me', { email: 'eastern@example.com' }, et)).data.token;
+  assert.equal((await api('POST', '/admin/password', { current: add.data.tempPassword, next: 'eastern-own-password' }, et)).status, 200);
+  assert.equal((await api('GET', '/admin/political-districts', undefined, et)).data.length, 33);
+
+  // a district registers in Eastern and can only map Eastern MMDAs
+  const reg = await api('POST', '/register', newJuaben);
+  assert.equal(reg.status, 201, JSON.stringify(reg.data));
+  const dt = reg.data.token;
+  const nj = pds.find((p: any) => p.name === 'New Juaben South');
+  assert.equal((await api('PUT', '/district/political-districts', { ids: [ashPd.id] }, dt)).status, 400, 'an Ashanti MMDA');
+  assert.equal((await api('PUT', '/district/political-districts', { ids: [nj.id] }, dt)).status, 200);
+
+  // each Regional Secretary sees only their own region
+  assert.match(JSON.stringify((await api('GET', '/admin/tree', undefined, et)).data), /New Juaben South/);
+  assert.doesNotMatch(JSON.stringify((await api('GET', '/admin/tree', undefined, et)).data), /Kumasi Metro/);
+  assert.doesNotMatch(JSON.stringify((await api('GET', `/admin/tree?regionId=${eas.id}`, undefined, rt)).data), /Kwame Boateng/);
+
+  // an MMDA the region removes stays removed after a restart
+  const okere = pds.find((p: any) => p.name === 'Okere');
+  assert.equal((await api('DELETE', `/admin/political-districts/${okere.id}`, undefined, et)).status, 200);
+  await (await import('../src/seed')).seed();
+  assert.equal((await api('GET', '/admin/political-districts', undefined, et)).data.length, 32);
+});
+
 test('demo guard: no demo routes, and demo mode refuses a database with real data', async () => {
   assert.equal((await api('GET', '/demo')).status, 404);
   assert.equal((await api('GET', '/meta')).data.demo, false);

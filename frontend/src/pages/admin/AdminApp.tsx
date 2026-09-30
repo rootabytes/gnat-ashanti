@@ -16,6 +16,7 @@ import { Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-route
 import { BrandBar, Footer } from '../../components/Brand';
 import { Alert, Button, Card, cx, Loading, Select, TextField } from '../../components/ui';
 import { api, session } from '../../lib/api';
+import { setSessionRegion } from '../../lib/sites';
 import { useMeta } from '../../lib/useMeta';
 import { useSignedOutRedirect } from '../../lib/useSignedOut';
 import Activity from './Activity';
@@ -139,6 +140,8 @@ function AdminShell({ onSignOut }: { onSignOut: () => void }) {
       </div>
     );
   if (!me || !region || !ctx) return <Loading />;
+  // Links this admin sends (codes, the register link) use their region's own address.
+  setSessionRegion(me.region_id === null ? null : region.code);
 
   const signOut = () => {
     session.setAdmin(null);

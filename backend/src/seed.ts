@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { config } from './config';
 import { one, pool } from './db';
-import { ASHANTI_POLITICAL_DISTRICTS, GNAT_REGIONS } from './reference';
+import { GNAT_REGIONS, POLITICAL_DISTRICTS } from './reference';
 
 export async function seed(): Promise<void> {
   for (const r of GNAT_REGIONS) {
@@ -12,11 +12,17 @@ export async function seed(): Promise<void> {
       [r.name, r.code, r.political, r.active],
     );
   }
-  const ash = await one<{ id: number }>(`SELECT id FROM regions WHERE code = 'ASH'`);
-  if (ash) {
-    for (const d of ASHANTI_POLITICAL_DISTRICTS) {
+  for (const [code, list] of Object.entries(POLITICAL_DISTRICTS)) {
+    // Only into an empty list: once loaded, the region's admins own it, and an MMDA
+    // they removed must not come back on the next restart.
+    const r = await one<{ id: number }>(
+      `SELECT id FROM regions r WHERE code = $1 AND NOT EXISTS (SELECT 1 FROM political_districts WHERE region_id = r.id)`,
+      [code],
+    );
+    if (!r) continue;
+    for (const d of list) {
       await pool.query(`INSERT INTO political_districts (region_id, name, kind) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, [
-        ash.id,
+        r.id,
         d.name,
         d.kind,
       ]);

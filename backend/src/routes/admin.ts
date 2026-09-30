@@ -477,7 +477,7 @@ function requireSuper(req: any) {
   if (admin(req).regionId) throw new HttpError(403, 'Only the super admin can manage admins.');
 }
 
-const ADMIN_LIST = `SELECT a.id, a.email, a.phone, a.name, a.region_id, r.name AS region_name, a.last_login_at,
+const ADMIN_LIST = `SELECT a.id, a.email, a.phone, a.name, a.region_id, r.name AS region_name, r.code AS region_code, a.last_login_at,
     a.must_change_password, a.password_expires_at
   FROM admins a LEFT JOIN regions r ON r.id = a.region_id`;
 

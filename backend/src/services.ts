@@ -24,7 +24,7 @@ export const unitsSchema = z.object({
 
 export async function getLocalRow(localId: number) {
   const row = await one(
-    `SELECT l.*, d.name AS district_name, d.region_id, r.name AS region_name
+    `SELECT l.*, d.name AS district_name, d.region_id, r.name AS region_name, r.code AS region_code
      FROM locals l JOIN districts d ON d.id = l.district_id JOIN regions r ON r.id = d.region_id
      WHERE l.id = $1`,
     [localId],
@@ -46,6 +46,7 @@ export async function localDetail(localId: number, includeCode: boolean) {
     districtName: l.district_name,
     regionId: l.region_id,
     regionName: l.region_name,
+    regionCode: l.region_code,
     chairName: l.chair_name,
     chairPhone: l.chair_phone,
     remarks: l.remarks,

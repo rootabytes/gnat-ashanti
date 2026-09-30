@@ -96,3 +96,46 @@ export const ASHANTI_POLITICAL_DISTRICTS: { name: string; kind: string }[] = [
   { name: 'Sekyere South', kind: 'District' },
   { name: 'Suame', kind: 'Municipal' },
 ];
+
+// The 33 Metropolitan, Municipal and District Assemblies of the Eastern Region.
+export const EASTERN_POLITICAL_DISTRICTS: { name: string; kind: string }[] = [
+  { name: 'Abuakwa North', kind: 'Municipal' },
+  { name: 'Abuakwa South', kind: 'Municipal' },
+  { name: 'Achiase', kind: 'District' },
+  { name: 'Akuapim North', kind: 'Municipal' },
+  { name: 'Akuapim South', kind: 'District' },
+  { name: 'Akyemansa', kind: 'District' },
+  { name: 'Asene Manso Akroso', kind: 'District' },
+  { name: 'Asuogyaman', kind: 'District' },
+  { name: 'Atiwa East', kind: 'District' },
+  { name: 'Atiwa West', kind: 'District' },
+  { name: 'Ayensuano', kind: 'District' },
+  { name: 'Birim Central', kind: 'Municipal' },
+  { name: 'Birim North', kind: 'District' },
+  { name: 'Birim South', kind: 'District' },
+  { name: 'Denkyembour', kind: 'District' },
+  { name: 'Fanteakwa North', kind: 'District' },
+  { name: 'Fanteakwa South', kind: 'District' },
+  { name: 'Kwaebibirem', kind: 'Municipal' },
+  { name: 'Kwahu Afram Plains North', kind: 'District' },
+  { name: 'Kwahu Afram Plains South', kind: 'District' },
+  { name: 'Kwahu East', kind: 'District' },
+  { name: 'Kwahu South', kind: 'District' },
+  { name: 'Kwahu West', kind: 'Municipal' },
+  { name: 'Lower Manya Krobo', kind: 'Municipal' },
+  { name: 'New Juaben North', kind: 'Municipal' },
+  { name: 'New Juaben South', kind: 'Municipal' },
+  { name: 'Nsawam Adoagyiri', kind: 'Municipal' },
+  { name: 'Okere', kind: 'District' },
+  { name: 'Suhum', kind: 'Municipal' },
+  { name: 'Upper Manya Krobo', kind: 'District' },
+  { name: 'Upper West Akim', kind: 'District' },
+  { name: 'West Akim', kind: 'Municipal' },
+  { name: 'Yilo Krobo', kind: 'Municipal' },
+];
+
+/** The MMDAs loaded for each GNAT region, by region code. A region's admins can edit the list after that. */
+export const POLITICAL_DISTRICTS: Record<string, { name: string; kind: string }[]> = {
+  ASH: ASHANTI_POLITICAL_DISTRICTS,
+  EAS: EASTERN_POLITICAL_DISTRICTS,
+};

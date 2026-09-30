@@ -1,3 +1,5 @@
+import { MAIN_REGION, siteOrigin } from './sites';
+
 export function fmtPhone(p?: string | null) {
   if (!p) return '';
   const m = /^\+233(\d{2})(\d{3})(\d{4})$/.exec(p);
@@ -40,7 +42,7 @@ export function smsLink(text: string, phone?: string | null) {
 }
 
 export function accessLink(code: string) {
-  return `${window.location.origin}/?code=${encodeURIComponent(code)}`;
+  return `${siteOrigin()}/?code=${encodeURIComponent(code)}`;
 }
 
 export function districtInviteMessage(name: string, code: string) {
@@ -48,13 +50,13 @@ export function districtInviteMessage(name: string, code: string) {
 }
 
 /** Sign-in details for a new admin, sent from the super admin's own WhatsApp or SMS. */
-export function adminInviteMessage(name: string, access: string, phone: string | null, tempPassword: string) {
+export function adminInviteMessage(name: string, access: string, phone: string | null, tempPassword: string, regionCode: string | null) {
   return [
     'GNAT Mapping: admin access',
     '',
     `Hello ${name}, you are now an admin for ${access}.`,
     '',
-    `Sign in here: ${window.location.origin}/admin`,
+    `Sign in here: ${siteOrigin(regionCode ?? MAIN_REGION)}/admin`,
     `Phone number: ${fmtPhone(phone)}`,
     `Temporary password: ${tempPassword}`,
     '',

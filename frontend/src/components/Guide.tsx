@@ -20,7 +20,8 @@ import {
   UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { GUIDES } from '../lib/guides';
+import { guidesFor } from '../lib/guides';
+import { currentRegion } from '../lib/sites';
 import type { GuideIcon, GuideRole } from '../lib/guides';
 import { Button, cx, Modal } from './ui';
 
@@ -82,7 +83,8 @@ export function GuideButton({ onClick }: { onClick: () => void }) {
 
 /** A short, swipe-free walkthrough: welcome, one card per step, then tips and the printable PDF. */
 export function GuideDialog({ role, open, onClose }: { role: GuideRole; open: boolean; onClose: () => void }) {
-  const g = GUIDES[role];
+  const guides = guidesFor(currentRegion());
+  const g = guides[role];
   const [page, setPage] = useState(0);
   useEffect(() => {
     if (open) setPage(0);
@@ -90,7 +92,7 @@ export function GuideDialog({ role, open, onClose }: { role: GuideRole; open: bo
   const last = g.steps.length + 1;
   const step = page >= 1 && page <= g.steps.length ? g.steps[page - 1] : null;
   const Icon = step ? ICONS[step.icon] : null;
-  const related = g.related ? GUIDES[g.related] : null;
+  const related = g.related ? guides[g.related] : null;
 
   return (
     <Modal

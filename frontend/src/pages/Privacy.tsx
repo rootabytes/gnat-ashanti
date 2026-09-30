@@ -24,8 +24,8 @@ export default function Privacy() {
 
         <Section title="Who we are">
           <p>
-            GNAT Mapping is built and run by <b>{ROOTABYTES.legalName}</b> ({ROOTABYTES.location}) for the Ghana National Association of
-            Teachers (GNAT), Ashanti Region. {ROOTABYTES.name} is registered with the {DPC.name}
+            GNAT Mapping is built and run by <b>{ROOTABYTES.legalName}</b> ({ROOTABYTES.location}) for the regions of the Ghana National
+            Association of Teachers (GNAT) that use it. {ROOTABYTES.name} is registered with the {DPC.name}
             {ROOTABYTES.dpcRegistration ? ` (registration number ${ROOTABYTES.dpcRegistration})` : ''} and is responsible for the personal
             data held in this system, under the Data Protection Act, 2012 (Act 843).
           </p>

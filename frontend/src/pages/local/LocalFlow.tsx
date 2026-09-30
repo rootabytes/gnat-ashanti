@@ -6,6 +6,7 @@ import { Alert, Button, Card, Field, Loading, Textarea, TextField, useConfirm, u
 import { GpsTag, UnitsEditor } from '../../components/UnitsEditor';
 import { api } from '../../lib/api';
 import { fmtPhone } from '../../lib/format';
+import { setSessionRegion } from '../../lib/sites';
 import type { LocalDetail, Unit } from '../../lib/types';
 import { useMeta } from '../../lib/useMeta';
 
@@ -27,6 +28,7 @@ export function LocalFlow({ base, detailsPath, header }: { base: string; details
 
   const hydrate = useCallback((d: LocalDetail) => {
     setData(d);
+    setSessionRegion(d.regionCode);
     setUnitCount(d.units.length);
     setForm({ chairName: d.chairName ?? '', chairPhone: fmtPhone(d.chairPhone), remarks: d.remarks ?? '' });
   }, []);

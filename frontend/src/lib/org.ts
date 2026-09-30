@@ -31,4 +31,4 @@ export const IN_KIND = {
 };
 
 /** When this privacy notice last changed. Update it with every change to the notice. */
-export const PRIVACY_UPDATED = '29 September 2026';
+export const PRIVACY_UPDATED = '30 September 2026';

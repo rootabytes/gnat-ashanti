@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BrandBar, Footer } from '../components/Brand';
 import { Alert, Button, Card, TextField } from '../components/ui';
 import { api, session } from '../lib/api';
+import { hostRegion } from '../lib/sites';
 import { useMeta } from '../lib/useMeta';
 
 export default function Home() {
@@ -14,6 +15,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const existing = session.chair();
   const { meta } = useMeta();
+  // On a region's own address, e.g. gnateastern.rootabytes.com, say which region this is.
+  const hostName = meta?.regions.find((r) => r.code === hostRegion())?.name;
   const tried = useRef(false);
 
   async function signIn(c: string) {
@@ -61,7 +64,10 @@ export default function Home() {
           <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
             GNAT <span className="text-accent">Structure</span> Mapping
           </h1>
-          <p className="mt-2 text-ink-2">Map GNAT districts, locals and basic units (workplaces) for your region.</p>
+          <p className="mt-2 text-ink-2">
+            Map GNAT districts, locals and basic units (workplaces) for{' '}
+            {hostName ? <b className="text-ink">the {hostName} Region</b> : 'your region'}.
+          </p>
         </div>
 
         {meta?.demo && (

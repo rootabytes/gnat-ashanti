@@ -240,6 +240,7 @@ interface AdminRow {
   name: string;
   region_id: number | null;
   region_name: string | null;
+  region_code: string | null;
   last_login_at: string | null;
   must_change_password: boolean;
   password_expires_at: string | null;
@@ -413,7 +414,7 @@ export function AdminsCard() {
 function SendSignIn({ issued, onClose }: { issued: Issued | null; onClose: () => void }) {
   if (!issued) return null;
   const access = issued.region_name ? `${issued.region_name} Region` : 'the system (super admin)';
-  const msg = adminInviteMessage(issued.name, access, issued.phone, issued.tempPassword);
+  const msg = adminInviteMessage(issued.name, access, issued.phone, issued.tempPassword, issued.region_code);
   return (
     <Modal
       open

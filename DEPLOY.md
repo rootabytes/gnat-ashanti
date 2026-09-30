@@ -80,6 +80,16 @@ Log in to the Cloudflare account that holds **rootabytes.com**.
 1. Cloudflare → gnat-ashanti → **Settings → Build → Variables and secrets**: set `VITE_API_URL=https://gnatashanti-api.rootabytes.com`, then run a new build (the address is built into the site).
 2. Railway: `ALLOWED_ORIGINS` from step 1.4 already includes `https://gnatashanti.rootabytes.com`.
 
+**Another region's address** (e.g. `gnateastern.rootabytes.com` for the Eastern Region):
+
+Every region's address serves the same website and API. On a region's address, the register page starts on that region, and the links and guides show that address. The addresses are listed in [frontend/src/lib/sites.ts](frontend/src/lib/sites.ts); a new region needs a line there and its guide PDFs (`npm --prefix backend run guides`) first.
+
+1. **Workers & Pages → gnat-ashanti → Settings → Domains & Routes → Add → Custom domain** → `gnateastern.rootabytes.com`.
+2. **Railway → api → Variables → `ALLOWED_ORIGINS`**: add the address after a comma, with no spaces or trailing slash:
+   `https://gnatashanti.rootabytes.com,https://gnateastern.rootabytes.com`
+   Railway redeploys the API by itself.
+3. Open `https://gnateastern.rootabytes.com`. The home page should say "for the Eastern Region" once that region is open.
+
 ## 4. Demo site (for testers)
 
 The demo lets anyone try every role with one tap: Regional Secretary, District and Local Secretaries, with fictional districts in every status. Its passwords and access codes are **shown on a public page**, so it runs on its **own database**. The API refuses to start in demo mode on a database that already holds data, and refuses real mode on the demo database.

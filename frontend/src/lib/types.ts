@@ -69,6 +69,7 @@ export interface LocalDetail {
   districtName: string;
   regionId: number;
   regionName: string;
+  regionCode: string;
   chairName: string | null;
   chairPhone: string | null;
   remarks: string | null;

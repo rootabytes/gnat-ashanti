@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BrandBar, Footer } from '../components/Brand';
 import { Alert, Button, Card, CopyButton, Field, Loading, Select, TextField, WhatsAppButton } from '../components/ui';
 import { api, session } from '../lib/api';
 import { districtInviteMessage, whatsappLink } from '../lib/format';
+import { hostRegion, setSessionRegion } from '../lib/sites';
 import { useMeta } from '../lib/useMeta';
 
 export default function Register() {
@@ -15,9 +16,21 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ code: string; name: string; token: string } | null>(null);
 
+  // The Regional Secretary's link names the region (/register?region=EAS), so no choice is shown.
+  // On a region's own address (gnateastern.rootabytes.com) that region is chosen but can be changed.
+  // Otherwise a secretary must pick when more than one region is open, so nobody lands in Ashanti by default.
+  const [params] = useSearchParams();
+  const wanted = params.get('region')?.toUpperCase();
+  const fromLink = !!wanted && !!meta?.regions.some((r) => r.code === wanted);
   useEffect(() => {
-    if (meta && !form.regionId && meta.regions.length) setForm((f) => ({ ...f, regionId: meta.regions[0].id }));
-  }, [meta, form.regionId]);
+    if (!meta || form.regionId || !meta.regions.length) return;
+    const host = hostRegion();
+    const pick =
+      meta.regions.find((r) => r.code === wanted) ??
+      meta.regions.find((r) => r.code === host) ??
+      (meta.regions.length === 1 ? meta.regions[0] : undefined);
+    if (pick) setForm((f) => ({ ...f, regionId: pick.id }));
+  }, [meta, form.regionId, wanted]);
 
   const region = meta?.regions.find((r) => r.id === form.regionId);
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -32,6 +45,7 @@ export default function Register() {
         registrationKey: form.registrationKey || null,
         chairGroup: form.chairGroup || null,
       });
+      setSessionRegion(region?.code ?? null);
       setDone(r);
     } catch (err: any) {
       setError(err.message);
@@ -82,13 +96,17 @@ export default function Register() {
           meta && (
             <Card title="Register your GNAT district" subtitle="For District Secretaries. Each GNAT district registers only once.">
               <form onSubmit={submit} className="space-y-4">
-                {meta.regions.length > 1 ? (
+                {meta.regions.length > 1 && !fromLink ? (
                   <Field label="GNAT Region" htmlFor="region">
                     <Select
                       id="region"
-                      value={form.regionId}
+                      required
+                      value={form.regionId || ''}
                       onChange={(e) => setForm((f) => ({ ...f, regionId: Number(e.target.value) }))}
                     >
+                      <option value="" disabled>
+                        Choose your region
+                      </option>
                       {meta.regions.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name}

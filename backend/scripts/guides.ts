@@ -4,11 +4,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
-import { GUIDES, GUIDES_UPDATED, SITE } from '../../frontend/src/lib/guides';
+import { guidesFor, GUIDES_UPDATED } from '../../frontend/src/lib/guides';
+import { MAIN_REGION, REGION_SITES } from '../../frontend/src/lib/sites';
 import type { Guide } from '../../frontend/src/lib/guides';
 
 const ROOT = path.join(__dirname, '..');
-const OUT = path.join(ROOT, '..', 'frontend', 'public', 'guides');
+const PUBLIC = path.join(ROOT, '..', 'frontend', 'public');
 const FONTS = path.join(ROOT, 'assets', 'fonts');
 const LOGO = path.join(ROOT, 'assets', 'gnat-logo.png');
 
@@ -22,8 +23,9 @@ const GREY = '#5B5B6E';
 const updated = new Date(`${GUIDES_UPDATED}T12:00:00Z`);
 const updatedLabel = updated.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-function makeGuide(g: Guide) {
-  const file = path.join(OUT, path.basename(g.pdf));
+function makeGuide(g: Guide, guides: Record<string, Guide>) {
+  const file = path.join(PUBLIC, g.pdf);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   const doc = new PDFDocument({
     size: 'A4',
     margins: { top: 42, bottom: 46, left: 48, right: 48 },
@@ -31,7 +33,7 @@ function makeGuide(g: Guide) {
     // Fixed dates so re-running the script only changes a PDF when its text changes.
     info: {
       Title: `GNAT Mapping: ${g.name} guide`,
-      Author: 'GNAT Ashanti Region',
+      Author: 'GNAT Mapping',
       Creator: 'Rootabytes',
       CreationDate: updated,
       ModDate: updated,
@@ -79,7 +81,7 @@ function makeGuide(g: Guide) {
     .font('Inter')
     .fontSize(10)
     .fillColor(GREY)
-    .text(`Website: ${SITE}${g.role === 'admin' || g.role === 'super' ? '/admin' : ''}`, { width });
+    .text(`Website: ${g.site}${g.role === 'admin' || g.role === 'super' ? '/admin' : ''}`, { width });
   doc.moveDown(0.7);
 
   // Numbered steps.
@@ -113,7 +115,7 @@ function makeGuide(g: Guide) {
   const tipW = width - pad * 2 - 14;
   doc.font('Inter').fontSize(10.5);
   const tipsH = g.tips.reduce((h, t) => h + doc.heightOfString(t, { width: tipW, lineGap: 2 }) + 6, 0);
-  const related = g.related ? GUIDES[g.related] : null;
+  const related = g.related ? guides[g.related] : null;
   const boxH = pad * 2 + 20 + tipsH + (related ? 22 : 0);
   if (doc.y + boxH > bottom()) doc.addPage();
   const by = doc.y + 4;
@@ -165,10 +167,14 @@ function makeGuide(g: Guide) {
 }
 
 async function main() {
-  fs.mkdirSync(OUT, { recursive: true });
-  for (const g of Object.values(GUIDES)) {
-    const file = await makeGuide(g);
-    console.log(`✓ ${path.relative(path.join(ROOT, '..'), file)}`);
+  // One set per region address (Eastern's in guides/eastern/); the super admin's guide only once.
+  for (const code of Object.keys(REGION_SITES)) {
+    const guides = guidesFor(code);
+    for (const g of Object.values(guides)) {
+      if (g.role === 'super' && code !== MAIN_REGION) continue;
+      const file = await makeGuide(g, guides);
+      console.log(`✓ ${path.relative(path.join(ROOT, '..'), file)}`);
+    }
   }
 }
 
